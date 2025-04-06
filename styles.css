@@ -7,6 +7,7 @@
   --accent-green: #4a7869;
   --transition: all 0.3s ease;
   --border-radius: 12px;
+  --button-radius: 8px;
 }
 
 * {
@@ -58,6 +59,7 @@ img {
   cursor: pointer;
   transition: var(--transition);
   font-size: 1rem;
+  border-radius: var(--button-radius);
 }
 
 .btn:hover {
@@ -228,6 +230,7 @@ nav {
   font-size: 1rem;
   transition: var(--transition);
   position: relative;
+  border-radius: var(--button-radius);
 }
 
 .filter-btn::after {
@@ -496,21 +499,35 @@ footer {
 
 .quantity-btn {
   background: transparent;
-  border: 1px solid #ddd;
-  width: 25px;
-  height: 25px;
+  border: 1px solid var(--text-color);
+  width: 24px;
+  height: 24px;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: var(--transition);
+  border-radius: var(--button-radius);
+}
+
+.quantity-btn:hover {
+  background: var(--text-color);
+  color: var(--bg-color);
 }
 
 .cart-item-remove {
   background: transparent;
-  border: none;
-  color: var(--accent-red);
+  border: 1px solid var(--text-color);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  margin-top: 0.5rem;
+  transition: var(--transition);
+  border-radius: var(--button-radius);
+}
+
+.cart-item-remove:hover {
+  background: var(--text-color);
+  color: var(--bg-color);
 }
 
 .cart-footer {
@@ -569,6 +586,15 @@ footer {
   border: none;
   cursor: pointer;
   z-index: 1002;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--button-radius);
+}
+
+.close-modal:hover {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .modal-product {
