@@ -26,9 +26,9 @@ class BackendStack(Stack):
             handler="checkout_session.handler",
             code=lambda_.Code.from_asset("backend"),
             environment={
-                "STRIPE_SECRET_KEY": "YOUR_STRIPE_SECRET_KEY",
-                "SUCCESS_URL": "https://yourdomain.com/success",
-                "CANCEL_URL": "https://yourdomain.com/cancel"
+                "STRIPE_SECRET_KEY": self.node.try_get_context("stripe_secret_key"),
+                "SUCCESS_URL": self.node.try_get_context("success_url"),
+                "CANCEL_URL": self.node.try_get_context("cancel_url")
             }
         )
 
@@ -39,10 +39,10 @@ class BackendStack(Stack):
             handler="stripe_webhook.handler",
             code=lambda_.Code.from_asset("backend"),
             environment={
-                "STRIPE_SECRET_KEY": "YOUR_STRIPE_SECRET_KEY",
-                "STRIPE_WEBHOOK_SECRET": "YOUR_STRIPE_WEBHOOK_SECRET",
+                "STRIPE_SECRET_KEY": self.node.try_get_context("stripe_secret_key"),
+                "STRIPE_WEBHOOK_SECRET": self.node.try_get_context("stripe_webhook_secret"),
                 "ORDERS_TABLE": orders_table.table_name,
-                "PRODIGI_ORDER_FUNCTION_NAME": "ProdigiOrderLambda"  # Will be set later
+                "PRODIGI_ORDER_FUNCTION_NAME": "ProdigiOrderLambda"
             }
         )
         orders_table.grant_write_data(stripe_webhook_lambda)
@@ -54,7 +54,7 @@ class BackendStack(Stack):
             handler="prodigi_order.handler",
             code=lambda_.Code.from_asset("backend"),
             environment={
-                "PRODIGI_API_KEY": "YOUR_PRODIGI_API_KEY",
+                "PRODIGI_API_KEY": self.node.try_get_context("prodigi_api_key"),
                 "ORDERS_TABLE": orders_table.table_name
             }
         )
@@ -68,7 +68,7 @@ class BackendStack(Stack):
             code=lambda_.Code.from_asset("backend"),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
-                "EMAIL_SENDER": "noreply@yourdomain.com"
+                "EMAIL_SENDER": self.node.try_get_context("email_sender")
             }
         )
         orders_table.grant_write_data(prodigi_webhook_lambda)
