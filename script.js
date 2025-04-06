@@ -44,6 +44,10 @@ const cartTotal = document.getElementById("cart-total")
 const cartCount = document.querySelector(".cart-count")
 const cartSidebar = document.getElementById("cart-sidebar")
 const overlay = document.getElementById("overlay")
+const checkoutBtn = document.getElementById("checkout-btn")
+
+// API Gateway URL (replace with your actual API Gateway URL after deployment)
+const API_URL = "YOUR_API_GATEWAY_URL"
 
 // Initialize Stripe
 let stripe
@@ -60,7 +64,6 @@ const productsGrid = document.getElementById("products-grid")
 const filterBtns = document.querySelectorAll(".filter-btn")
 const cartToggle = document.getElementById("cart-toggle")
 const closeCartBtn = document.getElementById("close-cart")
-const checkoutBtn = document.getElementById("checkout-btn")
 const productModal = document.getElementById("product-modal")
 const closeModal = document.getElementById("close-modal")
 const newsletterForm = document.getElementById("newsletter-form")
@@ -276,34 +279,29 @@ async function checkout() {
   }
 
   try {
-    // Create line items for Stripe
-    const lineItems = cart.map((item) => {
-      return {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: item.name,
-            description: item.description,
-            images: [item.image],
-          },
-          unit_amount: Math.round(item.price * 100), // Stripe uses cents
-        },
-        quantity: item.quantity,
-      }
+    // Prepare the checkout session request
+    const response = await fetch(`${API_URL}/create-checkout-session`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: cart.map(item => ({
+          name: item.name,
+          description: item.description,
+          image: item.image,
+          price: item.price,
+          quantity: item.quantity
+        })),
+        customer_email: "customer@example.com" // Replace with actual customer email
+      })
     })
 
-    // Simulate creating a checkout session
-    console.log("Creating checkout session with:", lineItems)
+    const { sessionId } = await response.json()
 
-    // In a real implementation, you would make an API call to your server
-    // to create a Stripe checkout session, then redirect to the checkout URL
-
-    alert("In a production environment, this would redirect to Stripe Checkout")
-
-    // For demo purposes, clear the cart
-    cart = []
-    updateCart()
-    closeCart()
+    // Redirect to Stripe Checkout
+    const stripe = Stripe("YOUR_STRIPE_PUBLISHABLE_KEY")
+    await stripe.redirectToCheckout({ sessionId })
   } catch (error) {
     console.error("Error during checkout:", error)
     alert("There was an error processing your checkout")
