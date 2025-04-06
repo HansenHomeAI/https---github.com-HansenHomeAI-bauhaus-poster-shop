@@ -22,6 +22,7 @@ jobs:
           pip install -r requirements.txt
           pip install -r backend/requirements.txt
           pip install aws-cdk-lib constructs
+          npm install -g aws-cdk
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -32,6 +33,13 @@ jobs:
 
       - name: CDK Bootstrap (if needed)
         run: cdk bootstrap
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          PRODIGI_API_KEY: ${{ secrets.PRODIGI_API_KEY }}
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          SUCCESS_URL: ${{ secrets.SUCCESS_URL }}
+          CANCEL_URL: ${{ secrets.CANCEL_URL }}
 
       - name: CDK Deploy
         run: cdk deploy --require-approval never
