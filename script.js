@@ -47,13 +47,13 @@ const overlay = document.getElementById("overlay")
 const checkoutBtn = document.getElementById("checkout-btn")
 
 // API Gateway URL (replace with your actual API Gateway URL after deployment)
-const API_URL = "https://YOUR_API_GATEWAY_ID.execute-api.us-west-2.amazonaws.com/prod"
+const API_URL = "https://18yg3ffw73.execute-api.us-west-2.amazonaws.com/prod"
 
 // Initialize Stripe
 let stripe
 try {
   // Initialize Stripe with your publishable key
-  stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY');
+  stripe = Stripe('pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
 } catch (error) {
   console.error("Failed to initialize Stripe:", error)
 }
