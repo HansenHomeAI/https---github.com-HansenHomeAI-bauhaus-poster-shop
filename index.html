@@ -3,150 +3,105 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bauhaus Poster Shop | April General Conference Art</title>
+  <title>Bauhaus Poster Shop</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://js.stripe.com/v3/"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Header -->
   <header>
-    <div class="container">
-      <nav>
-        <div class="logo">BAUHAUS POSTER SHOP</div>
-        <ul class="nav-links">
-          <li><a href="#home">Home</a></li>
-          <li><a href="#products">Posters</a></li>
-          <li><a href="#about">About</a></li>
-        </ul>
-        <div class="cart-icon" id="cart-toggle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 22C9.55228 22 10 21.5523 10 21C10 20.4477 9.55228 20 9 20C8.44772 20 8 20.4477 8 21C8 21.5523 8.44772 22 9 22Z" stroke="#1E1E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20 22C20.5523 22 21 21.5523 21 21C21 20.4477 20.5523 20 20 20C19.4477 20 19 20.4477 19 21C19 21.5523 19.4477 22 20 22Z" stroke="#1E1E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M1 1H5L7.68 14.39C7.77144 14.8504 8.02191 15.264 8.38755 15.5583C8.75318 15.8526 9.2107 16.009 9.68 16H19.4C19.8693 16.009 20.3268 15.8526 20.6925 15.5583C21.0581 15.264 21.3086 14.8504 21.4 14.39L23 6H6" stroke="#1E1E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+    <nav>
+      <div class="logo">Bauhaus Poster Shop</div>
+      <div class="nav-links">
+        <a href="#about">About</a>
+        <a href="#shop">Shop</a>
+        <a href="#contact">Contact</a>
+        <button id="cart-toggle" class="cart-btn">
           <span class="cart-count">0</span>
-        </div>
-      </nav>
-    </div>
+        </button>
+      </div>
+    </nav>
   </header>
 
-  <main>
-    <!-- Hero Section -->
-    <section id="home" class="hero">
-      <div class="container">
-        <div class="hero-content">
-          <h1>April General Conference<br>Art Prints</h1>
-          <p>Minimalist Bauhaus-inspired posters celebrating sacred moments</p>
-          <a href="#products" class="btn primary-btn">View Collection</a>
-        </div>
-        <div class="hero-image">
-          <div class="geometric-element"></div>
-          <img src="assets/hero-poster.jpg" alt="Featured General Conference art">
-        </div>
-      </div>
-    </section>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Bauhaus-Inspired Posters</h1>
+      <p>Minimalist designs that transform your space</p>
+      <a href="#shop" class="btn primary-btn">Shop Now</a>
+    </div>
+    <div class="hero-image">
+      <img src="assets/hero-poster.jpg" alt="Bauhaus Poster">
+    </div>
+  </section>
 
-    <!-- Products Section -->
-    <section id="products" class="products">
-      <div class="container">
-        <div class="section-header">
-          <h2>Featured Posters</h2>
-        </div>
-        
-        <div class="products-grid" id="products-grid">
-          <!-- Products will be loaded dynamically from script.js -->
-        </div>
-      </div>
-    </section>
+  <!-- About Section -->
+  <section id="about" class="about">
+    <div class="about-content">
+      <h2>About Our Posters</h2>
+      <p>Our posters are inspired by the Bauhaus movement, combining functionality with artistic expression. Each piece is carefully designed to bring minimalist elegance to your space.</p>
+    </div>
+    <div class="about-image">
+      <img src="assets/about-image.jpg" alt="About Bauhaus Posters">
+    </div>
+  </section>
 
-    <!-- About Section -->
-    <section id="about" class="about">
-      <div class="container">
-        <div class="about-content">
-          <h2>About Our Art</h2>
-          <p>Inspired by the Bauhaus movement's principles of simplicity and functionality, our posters capture the essence of sacred moments from April General Conference. Each piece is designed to bring spiritual inspiration to modern spaces while maintaining a minimalist aesthetic.</p>
-        </div>
-        <div class="about-image">
-          <div class="geometric-element"></div>
-          <img src="assets/about-image.jpg" alt="Studio workspace">
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-logo">
-          <div class="logo">BAUHAUS POSTER SHOP</div>
-          <p>Minimalist art for sacred spaces</p>
-        </div>
-        <div class="footer-links">
-          <h3>Quick Links</h3>
-          <ul>
-            <li><a href="#home">Home</a></li>
-            <li><a href="#products">Posters</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#" id="contact-link">Contact</a></li>
-          </ul>
-        </div>
-        <div class="footer-newsletter">
-          <h3>Stay Updated</h3>
-          <p>Subscribe for new releases</p>
-          <form id="newsletter-form">
-            <input type="email" placeholder="Your email address" required>
-            <button type="submit" class="btn">Subscribe</button>
-          </form>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; 2024 Bauhaus Poster Shop. All rights reserved.</p>
+  <!-- Shop Section -->
+  <section id="shop" class="shop">
+    <div class="shop-header">
+      <h2>Shop Posters</h2>
+      <div class="filter-buttons">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="christ">Christ</button>
+        <button class="filter-btn" data-filter="restoration">Restoration</button>
       </div>
     </div>
-  </footer>
+    <div id="products-grid" class="products-grid">
+      <!-- Products will be dynamically loaded here -->
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section id="contact" class="contact">
+    <h2>Contact Us</h2>
+    <p>Have questions about our posters? Reach out to us!</p>
+    <a href="mailto:contact@bauhausposters.com" class="btn">Email Us</a>
+  </section>
 
   <!-- Cart Sidebar -->
-  <div class="cart-sidebar" id="cart-sidebar">
+  <div id="cart-sidebar" class="cart-sidebar">
     <div class="cart-header">
       <h3>Your Cart</h3>
-      <button id="close-cart">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 6L6 18" stroke="#1E1E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M6 6L18 18" stroke="#1E1E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <button id="close-cart" class="close-cart">×</button>
     </div>
-    <div class="cart-items" id="cart-items">
-      <!-- Cart items will be loaded dynamically -->
+    <div id="cart-items" class="cart-items">
+      <!-- Cart items will be dynamically loaded here -->
     </div>
     <div class="cart-footer">
       <div class="cart-total">
-        <span>Total:</span>
-        <span id="cart-total">$0.00</span>
+        Total: $<span id="cart-total">0.00</span>
       </div>
-      <button class="btn primary-btn" id="checkout-btn">Checkout</button>
+      <button id="checkout-btn" class="btn primary-btn">Checkout</button>
     </div>
   </div>
 
   <!-- Product Modal -->
-  <div class="modal" id="product-modal">
+  <div id="product-modal" class="product-modal">
     <div class="modal-content">
-      <button class="close-modal" id="close-modal">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 6L6 18" stroke="#1E1E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M6 6L18 18" stroke="#1E1E1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <button id="close-modal" class="close-modal">×</button>
       <div class="modal-product">
-        <!-- Product details will be loaded dynamically -->
+        <!-- Product details will be dynamically loaded here -->
       </div>
     </div>
   </div>
 
-  <div class="overlay" id="overlay"></div>
+  <!-- Overlay -->
+  <div id="overlay" class="overlay"></div>
 
+  <!-- Scripts -->
+  <script src="https://js.stripe.com/v3/"></script>
   <script src="script.js"></script>
 </body>
 </html>

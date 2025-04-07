@@ -47,16 +47,15 @@ const overlay = document.getElementById("overlay")
 const checkoutBtn = document.getElementById("checkout-btn")
 
 // API Gateway URL (replace with your actual API Gateway URL after deployment)
-const API_URL = "YOUR_API_GATEWAY_URL"
+const API_URL = "https://YOUR_API_GATEWAY_ID.execute-api.us-west-2.amazonaws.com/prod"
 
 // Initialize Stripe
 let stripe
 try {
-  // In preview mode, we'll just log instead of initializing Stripe
-  console.log("Stripe would be initialized here in production")
-  // stripe = Stripe('your_publishable_key');
+  // Initialize Stripe with your publishable key
+  stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY');
 } catch (error) {
-  console.log("Stripe not loaded:", error)
+  console.error("Failed to initialize Stripe:", error)
 }
 
 // DOM Elements
@@ -66,8 +65,6 @@ const cartToggle = document.getElementById("cart-toggle")
 const closeCartBtn = document.getElementById("close-cart")
 const productModal = document.getElementById("product-modal")
 const closeModal = document.getElementById("close-modal")
-const newsletterForm = document.getElementById("newsletter-form")
-const contactLink = document.getElementById("contact-link")
 
 // Display products
 function displayProducts() {
@@ -248,14 +245,12 @@ function decreaseQuantity(id) {
 function increaseQuantity(id) {
   const item = cart.find((item) => item.id === id)
   item.quantity++
-
   updateCart()
 }
 
 // Remove from cart
 function removeFromCart(id) {
   cart = cart.filter((item) => item.id !== id)
-
   updateCart()
 }
 
@@ -273,98 +268,71 @@ function closeCart() {
 
 // Checkout
 async function checkout() {
-  if (cart.length === 0) {
-    alert("Your cart is empty")
-    return
-  }
-
   try {
-    // Prepare the checkout session request
-    const response = await fetch(`${API_URL}/create-checkout-session`, {
-      method: "POST",
+    // Prepare the request body
+    const requestBody = {
+      items: cart.map(item => ({
+        id: item.id,
+        quantity: item.quantity
+      })),
+      customer_email: "customer@example.com" // Replace with actual customer email
+    }
+
+    // Make the API call to create a checkout session
+    const response = await fetch(`${API_URL}/checkout`, {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        items: cart.map(item => ({
-          name: item.name,
-          description: item.description,
-          image: item.image,
-          price: item.price,
-          quantity: item.quantity
-        })),
-        customer_email: "customer@example.com" // Replace with actual customer email
-      })
+      body: JSON.stringify(requestBody)
     })
+
+    if (!response.ok) {
+      throw new Error('Failed to create checkout session')
+    }
 
     const { sessionId } = await response.json()
 
     // Redirect to Stripe Checkout
-    const stripe = Stripe("YOUR_STRIPE_PUBLISHABLE_KEY")
-    await stripe.redirectToCheckout({ sessionId })
+    const result = await stripe.redirectToCheckout({
+      sessionId: sessionId
+    })
+
+    if (result.error) {
+      throw new Error(result.error.message)
+    }
   } catch (error) {
-    console.error("Error during checkout:", error)
-    alert("There was an error processing your checkout")
+    console.error('Checkout error:', error)
+    alert('Failed to load checkout. Please try again.')
   }
 }
 
-// Handle newsletter form submission
-newsletterForm.addEventListener("submit", (e) => {
-  e.preventDefault()
-  const email = newsletterForm.querySelector("input").value
-
-  // Simulate API call
-  console.log("Subscribing email:", email)
-
-  // Show success message
-  alert("Thank you for subscribing to our newsletter!")
-
-  // Reset form
-  newsletterForm.reset()
-})
-
-// Contact link
-contactLink.addEventListener("click", (e) => {
-  e.preventDefault()
-
-  // Show contact info
-  alert("Contact us at: info@steepledesigns.com")
-})
-
-// Event listeners
-window.addEventListener("DOMContentLoaded", () => {
+// Event Listeners
+document.addEventListener("DOMContentLoaded", () => {
   displayProducts()
+
+  // Cart toggle
+  cartToggle.addEventListener("click", openCart)
+  closeCartBtn.addEventListener("click", closeCart)
+  overlay.addEventListener("click", () => {
+    closeCart()
+    closeProductModal()
+  })
+
+  // Close modal
+  closeModal.addEventListener("click", closeProductModal)
+
+  // Checkout
+  checkoutBtn.addEventListener("click", checkout)
+
+  // Scroll behavior
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault()
+      document.querySelector(this.getAttribute('href')).scrollIntoView({
+        behavior: 'smooth'
+      })
+    })
+  })
 })
-
-window.addEventListener("scroll", () => {
-  const header = document.querySelector("header")
-  if (window.scrollY > 50) {
-    header.classList.add("scrolled")
-  } else {
-    header.classList.remove("scrolled")
-  }
-})
-
-cartToggle.addEventListener("click", openCart)
-closeCartBtn.addEventListener("click", closeCart)
-closeModal.addEventListener("click", closeProductModal)
-checkoutBtn.addEventListener("click", checkout)
-
-overlay.addEventListener("click", () => {
-  closeCart()
-  closeProductModal()
-})
-
-// Prodigi API integration (simulated)
-function createProdigiOrder(orderData) {
-  // In a real implementation, you would make an API call to Prodigi
-  // to create a print order for the purchased posters
-  console.log("Creating Prodigi print order:", orderData)
-
-  // This would typically be done on your server after a successful Stripe payment
-  return {
-    id: "po-" + Math.random().toString(36).substr(2, 9),
-    status: "created",
-  }
-}
 
