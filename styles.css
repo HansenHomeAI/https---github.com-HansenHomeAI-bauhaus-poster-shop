@@ -1,13 +1,13 @@
 /* Base Styles */
 :root {
-  --bg-color: #efeee7;
-  --text-color: #1e1e1e;
-  --accent-red: #ba3b1a;
-  --accent-yellow: #ebb640;
-  --accent-green: #4a7869;
+  --bg-color: #F5F5F3;
+  --text-color: #1E1E1E;
+  --accent-orange: #F26B3A;
+  --accent-blue: #2B7B8C;
   --transition: all 0.3s ease;
   --border-radius: 12px;
   --button-radius: 8px;
+  --spacing-unit: 1.5rem;
 }
 
 * {
@@ -21,17 +21,18 @@ html {
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
-  line-height: 1.6;
+  line-height: 1.2;
   overflow-x: hidden;
+  letter-spacing: -0.01em;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 var(--spacing-unit);
 }
 
 a {
@@ -51,7 +52,7 @@ img {
 
 .btn {
   display: inline-block;
-  padding: 0.8rem 1.5rem;
+  padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
   background: transparent;
   border: 1px solid var(--text-color);
   color: var(--text-color);
@@ -60,6 +61,8 @@ img {
   transition: var(--transition);
   font-size: 1rem;
   border-radius: var(--button-radius);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .btn:hover {
@@ -84,7 +87,7 @@ header {
   top: 0;
   left: 0;
   z-index: 100;
-  padding: 1.5rem 0;
+  padding: var(--spacing-unit) 0;
   background-color: var(--bg-color);
   transition: var(--transition);
 }
@@ -101,19 +104,20 @@ nav {
 }
 
 .logo {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: -0.02em;
 }
 
 .nav-links {
   display: flex;
-  gap: 2rem;
+  gap: calc(var(--spacing-unit) * 2);
 }
 
 .nav-links a {
   position: relative;
   font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .nav-links a::after {
@@ -140,8 +144,8 @@ nav {
   position: absolute;
   top: -8px;
   right: -8px;
-  background-color: var(--accent-red);
-  color: white;
+  background-color: var(--accent-orange);
+  color: var(--bg-color);
   font-size: 0.7rem;
   width: 18px;
   height: 18px;
@@ -153,7 +157,7 @@ nav {
 
 /* Hero Section */
 .hero {
-  padding: 10rem 0 5rem;
+  padding: calc(var(--spacing-unit) * 6) 0 calc(var(--spacing-unit) * 3);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -167,16 +171,19 @@ nav {
 }
 
 .hero-content h1 {
-  font-size: 3.5rem;
-  line-height: 1.2;
-  margin-bottom: 1.5rem;
-  font-weight: 600;
+  font-size: 4rem;
+  line-height: 1;
+  margin-bottom: calc(var(--spacing-unit) * 1.5);
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 .hero-content p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
+  font-size: 1.25rem;
+  margin-bottom: calc(var(--spacing-unit) * 2);
   max-width: 80%;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 .hero-image {
@@ -193,7 +200,7 @@ nav {
   position: absolute;
   width: 60%;
   height: 60%;
-  background-color: var(--accent-yellow);
+  background-color: var(--accent-orange);
   bottom: -2rem;
   right: -2rem;
   z-index: 1;
@@ -212,9 +219,10 @@ nav {
 }
 
 .section-header h2 {
-  font-size: 3rem;
+  font-size: 3.5rem;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .filters {
@@ -225,12 +233,15 @@ nav {
 .filter-btn {
   background: transparent;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: calc(var(--spacing-unit) * 0.5) var(--spacing-unit);
   cursor: pointer;
   font-size: 1rem;
   transition: var(--transition);
   position: relative;
   border-radius: var(--button-radius);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: -0.01em;
+  font-weight: 500;
 }
 
 .filter-btn::after {
@@ -337,7 +348,7 @@ nav {
 }
 
 .about-image .geometric-element {
-  background-color: var(--accent-green);
+  background-color: var(--accent-blue);
   left: -2rem;
   top: -2rem;
   right: auto;
@@ -379,7 +390,7 @@ footer {
 }
 
 .footer-links a:hover {
-  color: var(--accent-yellow);
+  color: var(--accent-orange);
 }
 
 .footer-newsletter p {
@@ -576,6 +587,7 @@ footer {
   overflow-y: auto;
   position: relative;
   z-index: 1001;
+  border-radius: var(--border-radius);
 }
 
 .close-modal {
@@ -611,6 +623,7 @@ footer {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
 .modal-product-details {
