@@ -46,7 +46,7 @@ const cartSidebar = document.getElementById("cart-sidebar")
 const overlay = document.getElementById("overlay")
 const checkoutBtn = document.getElementById("checkout-btn")
 
-// API Gateway URL
+// API Gateway URL (replace with your actual API Gateway URL after deployment)
 const API_URL = "https://18yg3ffw73.execute-api.us-west-2.amazonaws.com/prod"
 
 // Initialize Stripe
@@ -272,42 +272,38 @@ function closeCart() {
 
 // Checkout
 async function checkout() {
+  if (cart.length === 0) {
+    alert("Your cart is empty")
+    return
+  }
+
   try {
-    // Prepare the request body
-    const requestBody = {
-      items: cart.map(item => ({
-        id: item.id,
-        quantity: item.quantity
-      })),
-      customer_email: "customer@example.com" // Replace with actual customer email
-    }
-
-    // Make the API call to create a checkout session
-    const response = await fetch(`${API_URL}/checkout`, {
-      method: 'POST',
+    // Prepare the checkout session request
+    const response = await fetch(`${API_URL}/create-checkout-session`, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        items: cart.map(item => ({
+          name: item.name,
+          description: item.description,
+          image: item.image,
+          price: item.price,
+          quantity: item.quantity
+        })),
+        customer_email: "customer@example.com" // Replace with actual customer email
+      })
     })
-
-    if (!response.ok) {
-      throw new Error('Failed to create checkout session')
-    }
 
     const { sessionId } = await response.json()
 
     // Redirect to Stripe Checkout
-    const result = await stripe.redirectToCheckout({
-      sessionId: sessionId
-    })
-
-    if (result.error) {
-      throw new Error(result.error.message)
-    }
+    const stripe = Stripe("YOUR_STRIPE_PUBLISHABLE_KEY")
+    await stripe.redirectToCheckout({ sessionId })
   } catch (error) {
-    console.error('Checkout error:', error)
-    alert('Failed to load checkout. Please try again.')
+    console.error("Error during checkout:", error)
+    alert("There was an error processing your checkout")
   }
 }
 
