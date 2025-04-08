@@ -9,11 +9,21 @@ from aws_cdk import (
     Duration
 )
 from constructs import Construct
-import os
 
 class BackendStack(Stack):
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
-        super().__init__(scope, construct_id, **kwargs)
+    def __init__(
+        self, 
+        scope: Construct, 
+        id: str, 
+        stripe_secret_key: str,
+        stripe_webhook_secret: str,
+        prodigi_api_key: str,
+        email_sender: str,
+        success_url: str,
+        cancel_url: str,
+        **kwargs
+    ):
+        super().__init__(scope, id, **kwargs)
 
         # Create DynamoDB table for orders
         orders_table = dynamodb.Table(
@@ -27,75 +37,71 @@ class BackendStack(Stack):
         )
 
         # Create Lambda functions
-        create_checkout_session = _lambda.Function(
-            self, "CreateCheckoutSession",
+        create_checkout_lambda = _lambda.Function(
+            self, "CreateCheckoutFunction",
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset("backend/functions"),
-            handler="create_checkout_session.handler",
+            handler="checkout_session.handler",
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
+            timeout=Duration.seconds(30),
             environment={
-                "STRIPE_SECRET_KEY": os.getenv("STRIPE_SECRET_KEY"),
-                "SUCCESS_URL": os.getenv("SUCCESS_URL"),
-                "CANCEL_URL": os.getenv("CANCEL_URL"),
-                "ORDERS_TABLE": orders_table.table_name
+                "STRIPE_SECRET_KEY": stripe_secret_key,
+                "SUCCESS_URL": success_url,
+                "CANCEL_URL": cancel_url,
+                "ORDERS_TABLE_NAME": orders_table.table_name
             }
         )
 
-        stripe_webhook = _lambda.Function(
-            self, "StripeWebhook",
+        stripe_webhook_lambda = _lambda.Function(
+            self, "StripeWebhookFunction",
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset("backend/functions"),
             handler="stripe_webhook.handler",
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
+            timeout=Duration.seconds(30),
             environment={
-                "STRIPE_SECRET_KEY": os.getenv("STRIPE_SECRET_KEY"),
-                "STRIPE_WEBHOOK_SECRET": os.getenv("STRIPE_WEBHOOK_SECRET"),
-                "PRODIGI_API_KEY": os.getenv("PRODIGI_API_KEY"),
-                "EMAIL_SENDER": os.getenv("EMAIL_SENDER"),
-                "ORDERS_TABLE": orders_table.table_name
+                "STRIPE_SECRET_KEY": stripe_secret_key,
+                "STRIPE_WEBHOOK_SECRET": stripe_webhook_secret,
+                "ORDERS_TABLE_NAME": orders_table.table_name
             }
         )
 
-        get_order = _lambda.Function(
-            self, "GetOrder",
+        process_order_lambda = _lambda.Function(
+            self, "ProcessOrderFunction",
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset("backend/functions"),
-            handler="get_order.handler",
+            handler="process_order.handler",
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
+            timeout=Duration.seconds(30),
             environment={
-                "ORDERS_TABLE": orders_table.table_name
+                "PRODIGI_API_KEY": prodigi_api_key,
+                "EMAIL_SENDER": email_sender,
+                "ORDERS_TABLE_NAME": orders_table.table_name
             }
-        )
-
-        # Grant permissions
-        orders_table.grant_write_data(create_checkout_session)
-        orders_table.grant_write_data(stripe_webhook)
-        orders_table.grant_read_data(get_order)
-
-        # Create API Gateway
-        api = apigw.RestApi(
-            self, "BauhausPosterShopAPI",
-            default_cors_preflight_options=apigw.CorsOptions(
-                allow_origins=apigw.Cors.ALL_ORIGINS,
-                allow_methods=apigw.Cors.ALL_METHODS
-            )
-        )
-
-        # Add resources and methods
-        checkout = api.root.add_resource("checkout")
-        checkout.add_method(
-            "POST",
-            apigw.LambdaIntegration(create_checkout_session)
-        )
-
-        webhook = api.root.add_resource("webhook")
-        webhook.add_method(
-            "POST",
-            apigw.LambdaIntegration(stripe_webhook)
-        )
-
-        orders = api.root.add_resource("orders")
-        order = orders.add_resource("{order_id}")
-        order.add_method(
-            "GET",
-            apigw.LambdaIntegration(get_order)
         )
 
         # Prodigi Webhook Lambda
@@ -115,7 +121,7 @@ class BackendStack(Stack):
             ),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
-                "EMAIL_SENDER": os.getenv("EMAIL_SENDER")
+                "EMAIL_SENDER": email_sender
             }
         )
 
@@ -139,6 +145,61 @@ class BackendStack(Stack):
             }
         )
 
+        # Create API Gateway with CORS enabled
+        api = apigw.RestApi(
+            self, "PosterShopApi",
+            rest_api_name="Poster Shop API",
+            description="API for the Bauhaus Poster Shop",
+            default_cors_preflight_options=apigw.CorsOptions(
+                allow_origins=["*"],
+                allow_methods=["GET", "POST", "OPTIONS"],
+                allow_headers=["*"],
+                allow_credentials=False,
+                max_age=Duration.days(1)
+            )
+        )
+
+        # Add checkout endpoint
+        checkout = api.root.add_resource("checkout")
+        checkout_integration = apigw.LambdaIntegration(
+            create_checkout_lambda,
+            proxy=True,
+            integration_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Headers': "'*'",
+                    'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
+                }
+            }]
+        )
+        
+        checkout.add_method(
+            "POST",
+            checkout_integration,
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True
+                }
+            }]
+        )
+
+        # Add webhook endpoints
+        webhook = api.root.add_resource("webhook")
+        webhook.add_method(
+            "POST",
+            apigw.LambdaIntegration(stripe_webhook_lambda)
+        )
+
+        prodigi_webhook = api.root.add_resource("prodigi-webhook")
+        prodigi_webhook.add_method(
+            "POST",
+            apigw.LambdaIntegration(prodigi_webhook_lambda)
+        )
+
         # Add order status endpoint
         order_status = api.root.add_resource("order-status")
         order_status.add_method(
@@ -147,5 +208,8 @@ class BackendStack(Stack):
         )
 
         # Grant permissions
+        orders_table.grant_write_data(create_checkout_lambda)
+        orders_table.grant_read_write_data(stripe_webhook_lambda)
+        orders_table.grant_read_write_data(process_order_lambda)
         orders_table.grant_write_data(prodigi_webhook_lambda)
         orders_table.grant_read_data(order_status_lambda) 

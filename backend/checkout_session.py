@@ -72,8 +72,8 @@ def handler(event, context):
             })
 
         # Get URLs from environment variables or use defaults
-        success_url = os.environ.get("SUCCESS_URL", DEFAULT_SUCCESS_URL)
-        cancel_url = os.environ.get("CANCEL_URL", DEFAULT_CANCEL_URL)
+        success_url = os.environ.get("SUCCESS_URL") or DEFAULT_SUCCESS_URL
+        cancel_url = os.environ.get("CANCEL_URL") or DEFAULT_CANCEL_URL
 
         logger.info(f"Using success_url: {success_url}")
         logger.info(f"Using cancel_url: {cancel_url}")
