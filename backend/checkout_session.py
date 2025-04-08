@@ -11,6 +11,10 @@ logger.setLevel(logging.INFO)
 # Initialize Stripe with your secret key
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
+# Default URLs for GitHub Pages
+DEFAULT_SUCCESS_URL = "https://hansenhomeai.github.io/success.html"
+DEFAULT_CANCEL_URL = "https://hansenhomeai.github.io/cancel.html"
+
 def create_cors_response(status_code, body):
     return {
         'statusCode': status_code,
@@ -30,7 +34,16 @@ def handler(event, context):
     # Handle CORS preflight request
     if event.get('httpMethod') == 'OPTIONS':
         logger.info("Handling OPTIONS request")
-        return create_cors_response(200, '')
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '3600'
+            },
+            'body': ''
+        }
 
     try:
         # Log the incoming request details
@@ -39,10 +52,10 @@ def handler(event, context):
 
         body = json.loads(event.get("body", "{}"))
         items = body.get("items", [])
-        customer_email = body.get("customerEmail")  # Updated to match frontend
+        customer_email = body.get("customerEmail")
 
         if not items:
-            return create_cors_response(400, {"error": "No items provided in request"})
+            raise ValueError("No items provided in the request")
 
         # Build Stripe line items array
         line_items = []
@@ -58,27 +71,48 @@ def handler(event, context):
                 "quantity": item.get("quantity"),
             })
 
+        # Get URLs from environment variables or use defaults
+        success_url = os.environ.get("SUCCESS_URL", DEFAULT_SUCCESS_URL)
+        cancel_url = os.environ.get("CANCEL_URL", DEFAULT_CANCEL_URL)
+
+        logger.info(f"Using success_url: {success_url}")
+        logger.info(f"Using cancel_url: {cancel_url}")
+
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=line_items,
             mode="payment",
             customer_email=customer_email,
-            success_url=os.environ.get("SUCCESS_URL", "https://hansenhomeai.github.io/success") + "?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=os.environ.get("CANCEL_URL", "https://hansenhomeai.github.io/cancel"),
+            success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=cancel_url,
             metadata={
                 "order_id": str(uuid.uuid4())
             }
         )
         
         logger.info("Successfully created Stripe session: %s", session.id)
-        return create_cors_response(200, {"sessionId": session.id})
-
-    except json.JSONDecodeError as e:
-        logger.error("Invalid JSON in request body: %s", str(e))
-        return create_cors_response(400, {"error": "Invalid JSON in request body"})
-    except stripe.error.StripeError as e:
-        logger.error("Stripe error: %s", str(e))
-        return create_cors_response(400, {"error": str(e)})
+        
+        return {
+            "statusCode": 200,
+            "headers": {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '3600',
+                'Content-Type': 'application/json'
+            },
+            "body": json.dumps({"sessionId": session.id})
+        }
     except Exception as e:
         logger.error("Error processing checkout: %s", str(e))
-        return create_cors_response(500, {"error": str(e)}) 
+        return {
+            "statusCode": 400,
+            "headers": {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Max-Age': '3600',
+                'Content-Type': 'application/json'
+            },
+            "body": json.dumps({"error": str(e)})
+        } 
