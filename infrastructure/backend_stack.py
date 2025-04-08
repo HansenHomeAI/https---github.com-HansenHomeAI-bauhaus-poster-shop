@@ -127,15 +127,63 @@ class BackendStack(Stack):
         )
         orders_table.grant_read_data(order_status_lambda)
 
-        # API Gateway REST API
-        api = apigw.RestApi(self, "BackendApi",
+        # API Gateway REST API with CORS enabled
+        api = apigw.RestApi(
+            self, "BackendApi",
             rest_api_name="Backend Service",
-            description="Handles Stripe checkout sessions, webhooks, and Prodigi order processing."
+            description="Handles Stripe checkout sessions, webhooks, and Prodigi order processing.",
+            default_cors_preflight_options=apigw.CorsOptions(
+                allow_origins=apigw.Cors.ALL_ORIGINS,
+                allow_methods=apigw.Cors.ALL_METHODS,
+                allow_headers=apigw.Cors.DEFAULT_HEADERS + ["Authorization"],
+                max_age=Duration.days(1)
+            )
         )
 
         # /create-checkout-session endpoint
         create_checkout_resource = api.root.add_resource("create-checkout-session")
-        create_checkout_resource.add_method("POST", apigw.LambdaIntegration(create_checkout_lambda))
+        create_checkout_resource.add_method(
+            "POST", 
+            apigw.LambdaIntegration(create_checkout_lambda),
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True,
+                    'method.response.header.Access-Control-Max-Age': True
+                }
+            }]
+        )
+
+        # Add OPTIONS method for CORS
+        create_checkout_resource.add_method(
+            "OPTIONS",
+            apigw.MockIntegration(
+                integration_responses=[{
+                    'statusCode': '200',
+                    'responseParameters': {
+                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+                        'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'",
+                        'method.response.header.Access-Control-Allow-Origin': "'*'",
+                        'method.response.header.Access-Control-Max-Age': "'3600'"
+                    }
+                }],
+                passthrough_behavior=apigw.PassthroughBehavior.NEVER,
+                request_templates={
+                    "application/json": "{\"statusCode\": 200}"
+                }
+            ),
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True,
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Max-Age': True
+                }
+            }]
+        )
 
         # /stripe-webhook endpoint
         stripe_webhook_resource = api.root.add_resource("stripe-webhook")
