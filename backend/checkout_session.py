@@ -12,10 +12,6 @@ logger.setLevel(logging.INFO)
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 stripe.api_version = "2025-03-31.basil"
 
-# Default URLs for GitHub Pages
-DEFAULT_SUCCESS_URL = "https://hansenhomeai.github.io/success.html"
-DEFAULT_CANCEL_URL = "https://hansenhomeai.github.io/cancel.html"
-
 def create_cors_response(status_code, body):
     return {
         'statusCode': status_code,

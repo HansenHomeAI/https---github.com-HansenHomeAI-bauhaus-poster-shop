@@ -277,7 +277,6 @@ function increaseQuantity(id) {
 // Remove from cart
 function removeFromCart(id) {
   cart = cart.filter((item) => item.id !== id)
-
   updateCart()
 }
 
@@ -291,46 +290,6 @@ function openCart() {
 function closeCart() {
   cartSidebar.classList.remove("open")
   overlay.classList.remove("open")
-}
-
-// Checkout
-async function checkout() {
-    try {
-        const emailInput = document.getElementById('cart-email');
-        if (!emailInput || !emailInput.checkValidity()) {
-            throw new Error('Please enter a valid email address');
-        }
-
-        localStorage.setItem('cartItems', JSON.stringify(cart));
-        localStorage.setItem('customerEmail', emailInput.value);
-
-        const response = await fetch('https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod/checkout', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                items: cart.map(item => ({
-                    id: item.id,
-                    quantity: item.quantity,
-                    name: item.name,
-                    price: item.price
-                })),
-                customerEmail: emailInput.value
-            })
-        });
-
-        const data = await response.json();
-        
-        if (response.ok) {
-            window.location.href = data.url;
-        } else {
-            throw new Error(data.error || 'Error creating checkout session');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('There was an error processing your checkout: ' + error.message);
-    }
 }
 
 // Handle newsletter form submission
@@ -373,8 +332,6 @@ window.addEventListener("scroll", () => {
 cartToggle.addEventListener("click", openCart)
 closeCartBtn.addEventListener("click", closeCart)
 closeModal.addEventListener("click", closeProductModal)
-checkoutBtn.addEventListener("click", checkout)
-
 overlay.addEventListener("click", () => {
   closeCart()
   closeProductModal()
@@ -429,7 +386,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     }
 
     try {
-        const response = await fetch('https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod/checkout', {
+        const response = await fetch(`${API_URL}/checkout`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -502,9 +459,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
 
                 const { error } = await stripe.confirmPayment({
                     elements,
-                    confirmParams: {
-                        return_url: window.location.origin
-                    }
+                    confirmParams: {}
                 });
 
                 if (error) {
