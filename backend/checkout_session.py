@@ -58,64 +58,24 @@ def handler(event, context):
         if not items:
             raise ValueError("No items provided in the request")
 
-        # Build Stripe line items array
-        line_items = []
-        for item in items:
-            line_items.append({
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {
-                        "name": item.get("name"),
-                    },
-                    "unit_amount": int(float(item.get("price")) * 100),
-                },
-                "quantity": item.get("quantity"),
-            })
+        # Calculate total amount
+        total_amount = sum(int(float(item.get("price")) * 100) * item.get("quantity", 1) for item in items)
 
-        # Get URLs from environment variables or use defaults
-        success_url = os.environ.get("SUCCESS_URL") or DEFAULT_SUCCESS_URL
-        cancel_url = os.environ.get("CANCEL_URL") or DEFAULT_CANCEL_URL
-
-        logger.info(f"Using success_url: {success_url}")
-        logger.info(f"Using cancel_url: {cancel_url}")
-
-        session = stripe.checkout.Session.create(
+        # Create a PaymentIntent
+        payment_intent = stripe.PaymentIntent.create(
+            amount=total_amount,
+            currency="usd",
             payment_method_types=["card"],
-            line_items=line_items,
-            mode="payment",
-            customer_email=customer_email,
-            payment_intent_data={
-                "setup_future_usage": "off_session"
-            },
             metadata={
                 "order_id": str(uuid.uuid4())
             },
-            # Add shipping options if needed
-            shipping_options=[
-                {
-                    "shipping_rate_data": {
-                        "type": "fixed_amount",
-                        "fixed_amount": {
-                            "amount": 0,
-                            "currency": "usd"
-                        },
-                        "display_name": "Free shipping"
-                    }
-                }
-            ],
-            # Add customer details collection
-            billing_address_collection="required",
-            shipping_address_collection={
-                "allowed_countries": ["US", "CA", "GB", "DE", "FR", "IT", "ES", "NL", "BE", "DK", "SE", "NO", "FI", "AT", "CH", "IE", "PT", "GR", "CZ", "HU", "PL", "SK", "SI", "HR", "RO", "BG", "EE", "LV", "LT", "MT", "CY", "LU", "IS", "LI", "MC", "SM", "VA", "AD"]
-            },
-            success_url=success_url,
-            cancel_url=cancel_url
+            receipt_email=customer_email,
+            automatic_payment_methods={
+                "enabled": True
+            }
         )
         
-        logger.info("Successfully created Stripe session: %s", session.id)
-        
-        # Retrieve the payment intent
-        payment_intent = stripe.PaymentIntent.retrieve(session.payment_intent)
+        logger.info("Successfully created PaymentIntent: %s", payment_intent.id)
         
         return {
             "statusCode": 200,
@@ -127,8 +87,7 @@ def handler(event, context):
                 'Content-Type': 'application/json'
             },
             "body": json.dumps({
-                "clientSecret": payment_intent.client_secret,
-                "sessionId": session.id
+                "clientSecret": payment_intent.client_secret
             })
         }
     except Exception as e:

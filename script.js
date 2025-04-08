@@ -444,11 +444,26 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         if (response.ok) {
             // Initialize Stripe Elements
             const stripe = Stripe('pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
-            const elements = stripe.elements({
-                clientSecret: data.clientSecret
-            });
+            
+            // Create payment element options
+            const options = {
+                clientSecret: data.clientSecret,
+                appearance: {
+                    theme: 'flat',
+                    variables: {
+                        colorPrimary: '#256F8A',
+                        colorBackground: '#EFEEE7',
+                        colorText: '#1E1E1E',
+                        colorDanger: '#BA3B1A',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        borderRadius: '4px',
+                        spacingUnit: '4px'
+                    }
+                }
+            };
 
             // Create and mount the payment element
+            const elements = stripe.elements(options);
             const paymentElement = elements.create('payment');
             paymentElement.mount('#payment-element');
 
@@ -488,7 +503,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 const { error } = await stripe.confirmPayment({
                     elements,
                     confirmParams: {
-                        return_url: window.location.origin + '/success.html'
+                        return_url: window.location.origin
                     }
                 });
 
