@@ -65,7 +65,6 @@ def handler(event, context):
         payment_intent = stripe.PaymentIntent.create(
             amount=total_amount,
             currency="usd",
-            payment_method_types=["card"],
             metadata={
                 "order_id": str(uuid.uuid4())
             },
