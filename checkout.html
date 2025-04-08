@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Bauhaus Poster Shop</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        .checkout-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: var(--bg-color);
+            border-radius: var(--border-radius);
+        }
+
+        #payment-element {
+            margin-top: 2rem;
+        }
+
+        .order-summary {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: #EFEEE7;
+            border-radius: var(--border-radius);
+        }
+
+        .order-summary h3 {
+            color: #1E1E1E;
+            margin-bottom: 1rem;
+        }
+
+        .checkout-button {
+            background-color: #256F8A;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+
+        .checkout-button:hover {
+            background-color: #1a5c75;
+        }
+
+        #payment-message {
+            color: #BA3B1A;
+            margin-top: 1rem;
+        }
+
+        .loading {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <a href="index.html">Bauhaus Poster Shop</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="checkout-container">
+            <div class="order-summary">
+                <h3>Order Summary</h3>
+                <div id="order-details"></div>
+            </div>
+
+            <form id="payment-form">
+                <div id="payment-element"></div>
+                <button id="submit" class="checkout-button">
+                    <span id="button-text">Pay now</span>
+                    <div class="spinner hidden" id="spinner"></div>
+                </button>
+                <div id="payment-message" class="hidden"></div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Bauhaus Poster Shop. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let elements;
+        const stripe = Stripe('your_publishable_key'); // We'll update this
+
+        // Get the client secret from the URL
+        const clientSecret = new URLSearchParams(window.location.search).get('client_secret');
+
+        initialize();
+
+        async function initialize() {
+            const appearance = {
+                theme: 'flat',
+                variables: {
+                    colorPrimary: '#256F8A',
+                    colorBackground: '#EFEEE7',
+                    colorText: '#1E1E1E',
+                    colorDanger: '#BA3B1A',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    borderRadius: '4px',
+                    spacingUnit: '4px'
+                }
+            };
+
+            elements = stripe.elements({ clientSecret, appearance });
+            const paymentElement = elements.create('payment');
+            paymentElement.mount('#payment-element');
+
+            // Display order details
+            const orderDetails = JSON.parse(localStorage.getItem('cartItems') || '[]');
+            const orderSummary = document.getElementById('order-details');
+            let total = 0;
+
+            orderDetails.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.innerHTML = `
+                    <p>${item.name} x ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</p>
+                `;
+                orderSummary.appendChild(itemDiv);
+                total += item.price * item.quantity;
+            });
+
+            const totalDiv = document.createElement('div');
+            totalDiv.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
+            orderSummary.appendChild(totalDiv);
+        }
+
+        document.querySelector("#payment-form").addEventListener("submit", handleSubmit);
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            setLoading(true);
+
+            const { error } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    return_url: "https://hansenhomeai.github.io/success.html",
+                }
+            });
+
+            if (error) {
+                const messageContainer = document.querySelector("#payment-message");
+                messageContainer.textContent = error.message;
+                messageContainer.classList.remove("hidden");
+                setLoading(false);
+            }
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                document.querySelector("#submit").disabled = true;
+                document.querySelector("#spinner").classList.remove("hidden");
+                document.querySelector("#button-text").classList.add("hidden");
+            } else {
+                document.querySelector("#submit").disabled = false;
+                document.querySelector("#spinner").classList.add("hidden");
+                document.querySelector("#button-text").classList.remove("hidden");
+            }
+        }
+    </script>
+</body>
+</html> 

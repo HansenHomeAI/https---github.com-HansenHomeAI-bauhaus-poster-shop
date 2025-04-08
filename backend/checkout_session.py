@@ -84,16 +84,13 @@ def handler(event, context):
             line_items=line_items,
             mode="payment",
             customer_email=customer_email,
-            success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url=cancel_url,
+            # Use embedded mode
+            ui_mode="embedded",
+            # Redirect to our custom checkout page with the client secret
+            redirect_on_completion="never",
+            return_url="https://hansenhomeai.github.io/success.html",
             metadata={
                 "order_id": str(uuid.uuid4())
-            },
-            # Add custom text
-            custom_text={
-                "submit": {
-                    "message": "Thank you for supporting Bauhaus Poster Shop!"
-                }
             },
             # Add shipping options if needed
             shipping_options=[
@@ -126,7 +123,10 @@ def handler(event, context):
                 'Access-Control-Max-Age': '3600',
                 'Content-Type': 'application/json'
             },
-            "body": json.dumps({"sessionId": session.id})
+            "body": json.dumps({
+                "clientSecret": session.client_secret,
+                "url": f"https://hansenhomeai.github.io/checkout.html?client_secret={session.client_secret}"
+            })
         }
     except Exception as e:
         logger.error("Error processing checkout: %s", str(e))

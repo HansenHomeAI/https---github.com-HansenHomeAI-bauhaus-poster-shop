@@ -272,48 +272,35 @@ function closeCart() {
 
 // Checkout
 async function checkout() {
-  try {
-    const response = await fetch(`${API_URL}/checkout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': window.location.origin
-      },
-      mode: 'cors',
-      body: JSON.stringify({
-        items: cart.map(item => ({
-          id: item.id,
-          quantity: item.quantity,
-          name: item.name,
-          price: item.price
-        })),
-        customerEmail: 'customer@example.com' // You might want to collect this from the user
-      })
-    });
+    const cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
+    const customerEmail = document.getElementById('customer-email').value;
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to create checkout session');
-    }
+    try {
+        const response = await fetch('https://your-api-gateway-url/prod/checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                items: cartItems,
+                customerEmail: customerEmail
+            })
+        });
 
-    const data = await response.json();
-    
-    if (!data.sessionId) {
-      throw new Error('No session ID returned from the server');
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Store cart items for the checkout page
+            localStorage.setItem('cartItems', JSON.stringify(cartItems));
+            // Redirect to our custom checkout page
+            window.location.href = data.url;
+        } else {
+            throw new Error(data.error || 'Error creating checkout session');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('There was an error processing your checkout: ' + error.message);
     }
-
-    // Redirect to Stripe Checkout
-    const result = await stripe.redirectToCheckout({
-      sessionId: data.sessionId
-    });
-    
-    if (result.error) {
-      throw new Error(result.error.message);
-    }
-  } catch (error) {
-    console.error("Error during checkout:", error);
-    alert(`There was an error processing your checkout: ${error.message}`);
-  }
 }
 
 // Handle newsletter form submission
