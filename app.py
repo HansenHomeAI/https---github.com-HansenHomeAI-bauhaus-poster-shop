@@ -1,32 +1,19 @@
 #!/usr/bin/env python3
 import os
-import aws_cdk as cdk
+from aws_cdk import App, Environment
 from infrastructure.backend_stack import BackendStack
 
-app = cdk.App()
+app = App()
 
-# Get environment variables
-stripe_secret_key = os.getenv('STRIPE_SECRET_KEY')
-stripe_webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
-prodigi_api_key = os.getenv('PRODIGI_API_KEY')
-email_sender = os.getenv('EMAIL_SENDER')
-success_url = os.getenv('SUCCESS_URL')
-cancel_url = os.getenv('CANCEL_URL')
+context = {
+    'stripe_test_secret_key': os.environ.get('STRIPE_TEST_SECRET_KEY'),
+    'stripe_webhook_secret': os.environ.get('STRIPE_WEBHOOK_SECRET'),
+    'prodigi_sandbox_api_key': os.environ.get('PRODIGI_SANDBOX_API_KEY'),
+    'email_sender': os.environ.get('EMAIL_SENDER'),
+    'success_url': os.environ.get('SUCCESS_URL', 'https://hansenhomeai.github.io/success'),
+    'cancel_url': os.environ.get('CANCEL_URL', 'https://hansenhomeai.github.io/cancel')
+}
 
-# Create the stack with environment variables
-BackendStack(
-    app, 
-    "BackendStack",
-    env=cdk.Environment(
-        account=os.getenv('CDK_DEFAULT_ACCOUNT'),
-        region=os.getenv('CDK_DEFAULT_REGION', 'us-west-2')
-    ),
-    stripe_secret_key=stripe_secret_key,
-    stripe_webhook_secret=stripe_webhook_secret,
-    prodigi_api_key=prodigi_api_key,
-    email_sender=email_sender,
-    success_url=success_url,
-    cancel_url=cancel_url
-)
+BackendStack(app, "BauhausPosterShopStack", context)
 
 app.synth() 

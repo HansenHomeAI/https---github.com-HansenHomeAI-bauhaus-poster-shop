@@ -52,8 +52,8 @@ const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
 // Initialize Stripe
 let stripe
 try {
-  // Initialize Stripe with your publishable key
-  stripe = Stripe('pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
+  // Initialize Stripe with test publishable key
+  stripe = Stripe(process.env.STRIPE_TEST_PUBLISHABLE_KEY);
 } catch (error) {
   console.error("Failed to initialize Stripe:", error)
 }

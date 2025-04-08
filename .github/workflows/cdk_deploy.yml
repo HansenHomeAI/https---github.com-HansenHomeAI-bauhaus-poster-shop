@@ -2,7 +2,8 @@ name: CDK Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -31,24 +32,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
-      - name: CDK Bootstrap (if needed)
-        run: cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/us-west-2
-        env:
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          PRODIGI_API_KEY: ${{ secrets.PRODIGI_API_KEY }}
-          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
-          SUCCESS_URL: ${{ secrets.SUCCESS_URL }}
-          CANCEL_URL: ${{ secrets.CANCEL_URL }}
+      - name: CDK Bootstrap
+        run: cdk bootstrap
 
       - name: CDK Deploy
         run: cdk deploy --require-approval never
         env:
-          CDK_DEFAULT_REGION: us-west-2
-          CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_TEST_PUBLISHABLE_KEY: ${{ secrets.STRIPE_TEST_PUBLISHABLE_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          PRODIGI_API_KEY: ${{ secrets.PRODIGI_API_KEY }}
+          PRODIGI_SANDBOX_API_KEY: ${{ secrets.PRODIGI_SANDBOX_API_KEY }}
           EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
-          SUCCESS_URL: ${{ secrets.SUCCESS_URL }}
-          CANCEL_URL: ${{ secrets.CANCEL_URL }} 
+          SUCCESS_URL: 'https://hansenhomeai.github.io/success'
+          CANCEL_URL: 'https://hansenhomeai.github.io/cancel' 

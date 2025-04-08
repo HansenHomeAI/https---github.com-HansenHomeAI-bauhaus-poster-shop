@@ -37,70 +37,30 @@ class BackendStack(Stack):
         )
 
         # Create Lambda functions
-        create_checkout_lambda = _lambda.Function(
-            self, "CreateCheckoutFunction",
+        create_checkout_session = _lambda.Function(
+            self, 'CreateCheckoutSession',
             runtime=_lambda.Runtime.PYTHON_3_9,
-            handler="checkout_session.handler",
-            code=_lambda.Code.from_asset(
-                "backend",
-                bundling={
-                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
-                    "command": [
-                        "bash", "-c",
-                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
-                    ]
-                }
-            ),
-            timeout=Duration.seconds(30),
+            code=_lambda.Code.from_asset('backend'),
+            handler='checkout_session.handler',
             environment={
-                "STRIPE_SECRET_KEY": stripe_secret_key,
-                "SUCCESS_URL": success_url,
-                "CANCEL_URL": cancel_url,
-                "ORDERS_TABLE_NAME": orders_table.table_name
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
+                'SUCCESS_URL': self.node.try_get_context('success_url'),
+                'CANCEL_URL': self.node.try_get_context('cancel_url'),
+                'ORDERS_TABLE': orders_table.table_name
             }
         )
 
-        stripe_webhook_lambda = _lambda.Function(
-            self, "StripeWebhookFunction",
+        process_webhook = _lambda.Function(
+            self, 'ProcessWebhook',
             runtime=_lambda.Runtime.PYTHON_3_9,
-            handler="stripe_webhook.handler",
-            code=_lambda.Code.from_asset(
-                "backend",
-                bundling={
-                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
-                    "command": [
-                        "bash", "-c",
-                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
-                    ]
-                }
-            ),
-            timeout=Duration.seconds(30),
+            code=_lambda.Code.from_asset('backend'),
+            handler='process_webhook.handler',
             environment={
-                "STRIPE_SECRET_KEY": stripe_secret_key,
-                "STRIPE_WEBHOOK_SECRET": stripe_webhook_secret,
-                "ORDERS_TABLE_NAME": orders_table.table_name
-            }
-        )
-
-        process_order_lambda = _lambda.Function(
-            self, "ProcessOrderFunction",
-            runtime=_lambda.Runtime.PYTHON_3_9,
-            handler="process_order.handler",
-            code=_lambda.Code.from_asset(
-                "backend",
-                bundling={
-                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
-                    "command": [
-                        "bash", "-c",
-                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
-                    ]
-                }
-            ),
-            timeout=Duration.seconds(30),
-            environment={
-                "PRODIGI_API_KEY": prodigi_api_key,
-                "EMAIL_SENDER": email_sender,
-                "ORDERS_TABLE_NAME": orders_table.table_name
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
+                'STRIPE_WEBHOOK_SECRET': self.node.try_get_context('stripe_webhook_secret'),
+                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key'),
+                'ORDERS_TABLE': orders_table.table_name,
+                'EMAIL_SENDER': self.node.try_get_context('email_sender')
             }
         )
 
@@ -162,7 +122,7 @@ class BackendStack(Stack):
         # Add checkout endpoint
         checkout = api.root.add_resource("checkout")
         checkout_integration = apigw.LambdaIntegration(
-            create_checkout_lambda,
+            create_checkout_session,
             proxy=True,
             integration_responses=[{
                 'statusCode': '200',
@@ -191,7 +151,7 @@ class BackendStack(Stack):
         webhook = api.root.add_resource("webhook")
         webhook.add_method(
             "POST",
-            apigw.LambdaIntegration(stripe_webhook_lambda)
+            apigw.LambdaIntegration(process_webhook)
         )
 
         prodigi_webhook = api.root.add_resource("prodigi-webhook")
@@ -208,8 +168,7 @@ class BackendStack(Stack):
         )
 
         # Grant permissions
-        orders_table.grant_write_data(create_checkout_lambda)
-        orders_table.grant_read_write_data(stripe_webhook_lambda)
-        orders_table.grant_read_write_data(process_order_lambda)
+        orders_table.grant_write_data(create_checkout_session)
+        orders_table.grant_read_write_data(process_webhook)
         orders_table.grant_write_data(prodigi_webhook_lambda)
         orders_table.grant_read_data(order_status_lambda) 
