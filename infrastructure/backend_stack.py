@@ -85,16 +85,16 @@ class BackendStack(Stack):
             default_cors_preflight_options=apigw.CorsOptions(
                 allow_origins=["*"],
                 allow_methods=["GET", "POST", "OPTIONS"],
-                allow_headers=["Content-Type", "Authorization", "Origin"],
+                allow_headers=["Content-Type", "Authorization", "Origin", "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"],
                 max_age=Duration.days(1)
             )
         )
 
-        # Add resources and methods with CORS
+        # Add checkout endpoint
         checkout = api.root.add_resource("checkout")
         checkout_integration = apigw.LambdaIntegration(
             create_checkout_lambda,
-            proxy=False,
+            proxy=True,
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
@@ -114,16 +114,32 @@ class BackendStack(Stack):
             }]
         )
 
+        # Add webhook endpoints
         webhook = api.root.add_resource("webhook")
         webhook.add_method(
             "POST",
             apigw.LambdaIntegration(stripe_webhook_lambda)
         )
 
+        prodigi_webhook = api.root.add_resource("prodigi-webhook")
+        prodigi_webhook.add_method(
+            "POST",
+            apigw.LambdaIntegration(prodigi_webhook_lambda)
+        )
+
+        # Add order status endpoint
+        order_status = api.root.add_resource("order-status")
+        order_status.add_method(
+            "GET",
+            apigw.LambdaIntegration(order_status_lambda)
+        )
+
         # Grant permissions
         orders_table.grant_write_data(create_checkout_lambda)
         orders_table.grant_read_write_data(stripe_webhook_lambda)
         orders_table.grant_read_write_data(process_order_lambda)
+        orders_table.grant_write_data(prodigi_webhook_lambda)
+        orders_table.grant_read_data(order_status_lambda)
 
         # Lambda: Prodigi Webhook (Shipping Updates)
         prodigi_webhook_lambda = _lambda.Function(
@@ -148,74 +164,4 @@ class BackendStack(Stack):
                 "ORDERS_TABLE": orders_table.table_name,
             }
         )
-        orders_table.grant_read_data(order_status_lambda)
-
-        # API Gateway REST API with CORS enabled
-        api = apigw.RestApi(
-            self, "BackendApi",
-            rest_api_name="Backend Service",
-            description="Handles Stripe checkout sessions, webhooks, and Prodigi order processing.",
-            default_cors_preflight_options=apigw.CorsOptions(
-                allow_origins=apigw.Cors.ALL_ORIGINS,
-                allow_methods=apigw.Cors.ALL_METHODS,
-                allow_headers=apigw.Cors.DEFAULT_HEADERS + ["Authorization"],
-                max_age=Duration.days(1)
-            )
-        )
-
-        # /create-checkout-session endpoint
-        create_checkout_resource = api.root.add_resource("create-checkout-session")
-        create_checkout_resource.add_method(
-            "POST", 
-            apigw.LambdaIntegration(create_checkout_lambda),
-            method_responses=[{
-                'statusCode': '200',
-                'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': True,
-                    'method.response.header.Access-Control-Allow-Headers': True,
-                    'method.response.header.Access-Control-Allow-Methods': True,
-                    'method.response.header.Access-Control-Max-Age': True
-                }
-            }]
-        )
-
-        # Add OPTIONS method for CORS
-        create_checkout_resource.add_method(
-            "OPTIONS",
-            apigw.MockIntegration(
-                integration_responses=[{
-                    'statusCode': '200',
-                    'responseParameters': {
-                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
-                        'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'",
-                        'method.response.header.Access-Control-Allow-Origin': "'*'",
-                        'method.response.header.Access-Control-Max-Age': "'3600'"
-                    }
-                }],
-                passthrough_behavior=apigw.PassthroughBehavior.NEVER,
-                request_templates={
-                    "application/json": "{\"statusCode\": 200}"
-                }
-            ),
-            method_responses=[{
-                'statusCode': '200',
-                'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Headers': True,
-                    'method.response.header.Access-Control-Allow-Methods': True,
-                    'method.response.header.Access-Control-Allow-Origin': True,
-                    'method.response.header.Access-Control-Max-Age': True
-                }
-            }]
-        )
-
-        # /stripe-webhook endpoint
-        stripe_webhook_resource = api.root.add_resource("stripe-webhook")
-        stripe_webhook_resource.add_method("POST", apigw.LambdaIntegration(stripe_webhook_lambda))
-
-        # /prodigi-webhook endpoint
-        prodigi_webhook_resource = api.root.add_resource("prodigi-webhook")
-        prodigi_webhook_resource.add_method("POST", apigw.LambdaIntegration(prodigi_webhook_lambda))
-
-        # /order-status endpoint
-        order_status_resource = api.root.add_resource("order-status")
-        order_status_resource.add_method("GET", apigw.LambdaIntegration(order_status_lambda)) 
+        orders_table.grant_read_data(order_status_lambda) 
