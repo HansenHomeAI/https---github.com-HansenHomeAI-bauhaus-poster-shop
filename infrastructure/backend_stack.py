@@ -77,6 +77,29 @@ class BackendStack(Stack):
             }
         )
 
+        # Prodigi Webhook Lambda
+        prodigi_webhook_lambda = _lambda.Function(
+            self, "ProdigiWebhookLambda",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            handler="prodigi_webhook.handler",
+            code=_lambda.Code.from_asset("backend"),
+            environment={
+                "ORDERS_TABLE": orders_table.table_name,
+                "EMAIL_SENDER": email_sender
+            }
+        )
+
+        # Order Status Lambda
+        order_status_lambda = _lambda.Function(
+            self, "OrderStatusLambda",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            handler="order_status.handler",
+            code=_lambda.Code.from_asset("backend"),
+            environment={
+                "ORDERS_TABLE": orders_table.table_name,
+            }
+        )
+
         # Create API Gateway with CORS enabled
         api = apigw.RestApi(
             self, "PosterShopApi",
@@ -139,29 +162,4 @@ class BackendStack(Stack):
         orders_table.grant_read_write_data(stripe_webhook_lambda)
         orders_table.grant_read_write_data(process_order_lambda)
         orders_table.grant_write_data(prodigi_webhook_lambda)
-        orders_table.grant_read_data(order_status_lambda)
-
-        # Lambda: Prodigi Webhook (Shipping Updates)
-        prodigi_webhook_lambda = _lambda.Function(
-            self, "ProdigiWebhookLambda",
-            runtime=_lambda.Runtime.PYTHON_3_9,
-            handler="prodigi_webhook.handler",
-            code=_lambda.Code.from_asset("backend"),
-            environment={
-                "ORDERS_TABLE": orders_table.table_name,
-                "EMAIL_SENDER": email_sender
-            }
-        )
-        orders_table.grant_write_data(prodigi_webhook_lambda)
-
-        # Lambda: Order Status (GET)
-        order_status_lambda = _lambda.Function(
-            self, "OrderStatusLambda",
-            runtime=_lambda.Runtime.PYTHON_3_9,
-            handler="order_status.handler",
-            code=_lambda.Code.from_asset("backend"),
-            environment={
-                "ORDERS_TABLE": orders_table.table_name,
-            }
-        )
         orders_table.grant_read_data(order_status_lambda) 
