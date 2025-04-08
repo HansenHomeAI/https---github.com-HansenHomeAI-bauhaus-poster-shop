@@ -228,6 +228,29 @@ function updateCart() {
   // Update cart total and count
   cartTotal.textContent = `$${total.toFixed(2)}`
   cartCount.textContent = count
+
+  // Add email input if not already present
+  let emailContainer = document.querySelector('.cart-email-container');
+  if (!emailContainer && cart.length > 0) {
+    emailContainer = document.createElement('div');
+    emailContainer.classList.add('cart-email-container');
+    emailContainer.innerHTML = `
+      <label for="cart-email">Email for shipping updates:</label>
+      <input type="email" id="cart-email" placeholder="Enter your email" required>
+    `;
+    cartItems.insertAdjacentElement('afterend', emailContainer);
+    
+    // Enable/disable checkout button based on email validity
+    const emailInput = emailContainer.querySelector('#cart-email');
+    emailInput.addEventListener('input', () => {
+      checkoutBtn.disabled = !emailInput.checkValidity();
+    });
+    
+    // Initially disable checkout button
+    checkoutBtn.disabled = true;
+  } else if (cart.length === 0 && emailContainer) {
+    emailContainer.remove();
+  }
 }
 
 // Decrease quantity
@@ -272,27 +295,34 @@ function closeCart() {
 
 // Checkout
 async function checkout() {
-    const cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
-    const customerEmail = document.getElementById('customer-email').value;
-
     try {
+        const emailInput = document.getElementById('cart-email');
+        if (!emailInput || !emailInput.checkValidity()) {
+            throw new Error('Please enter a valid email address');
+        }
+
+        localStorage.setItem('cartItems', JSON.stringify(cart));
+        localStorage.setItem('customerEmail', emailInput.value);
+
         const response = await fetch('https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod/checkout', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                items: cartItems,
-                customerEmail: customerEmail
+                items: cart.map(item => ({
+                    id: item.id,
+                    quantity: item.quantity,
+                    name: item.name,
+                    price: item.price
+                })),
+                customerEmail: emailInput.value
             })
         });
 
         const data = await response.json();
         
         if (response.ok) {
-            // Store cart items for the checkout page
-            localStorage.setItem('cartItems', JSON.stringify(cartItems));
-            // Redirect to our custom checkout page
             window.location.href = data.url;
         } else {
             throw new Error(data.error || 'Error creating checkout session');

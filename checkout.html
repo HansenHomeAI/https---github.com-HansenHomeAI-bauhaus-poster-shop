@@ -56,6 +56,29 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        .form-row {
+            margin-bottom: 1rem;
+        }
+
+        .form-row label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #1E1E1E;
+        }
+
+        .form-row input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D9D9D9;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+        }
+
+        .form-row input:focus {
+            outline: none;
+            border-color: #256F8A;
+        }
     </style>
 </head>
 <body>
@@ -116,10 +139,17 @@
             const paymentElement = elements.create('payment');
             paymentElement.mount('#payment-element');
 
-            // Display order details
+            // Display order details and customer email
             const orderDetails = JSON.parse(localStorage.getItem('cartItems') || '[]');
+            const customerEmail = localStorage.getItem('customerEmail');
             const orderSummary = document.getElementById('order-details');
             let total = 0;
+
+            // Add customer email to order summary
+            const emailDiv = document.createElement('div');
+            emailDiv.classList.add('customer-email');
+            emailDiv.innerHTML = `<p>Order confirmation will be sent to: ${customerEmail}</p>`;
+            orderSummary.appendChild(emailDiv);
 
             orderDetails.forEach(item => {
                 const itemDiv = document.createElement('div');
