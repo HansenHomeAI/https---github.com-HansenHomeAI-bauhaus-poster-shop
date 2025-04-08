@@ -953,3 +953,79 @@ footer {
     font-weight: bold;
 }
 
+/* Email input styles */
+.email-input-container {
+    margin-bottom: 20px;
+}
+
+.email-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.email-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 111, 138, 0.1);
+}
+
+.email-input.error {
+    border-color: var(--error-color);
+}
+
+/* Loading states */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Payment element container */
+#payment-element {
+    margin-bottom: 24px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+}
+
+/* Payment message */
+#payment-message {
+    color: var(--error-color);
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 4px;
+    background-color: rgba(186, 59, 26, 0.1);
+}
+
+/* Button states */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.button-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
