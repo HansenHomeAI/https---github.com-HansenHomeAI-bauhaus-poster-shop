@@ -32,6 +32,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
+      - name: DEBUG Print Env Var
+        run: |
+          echo "Attempting to print STRIPE_TEST_SECRET_KEY:"
+          echo "Value: [${{ env.STRIPE_TEST_SECRET_KEY }}]"
+          if [ -z "${{ env.STRIPE_TEST_SECRET_KEY }}" ]; then
+            echo "ERROR: STRIPE_TEST_SECRET_KEY appears empty or unset!"
+          else
+            echo "OK: STRIPE_TEST_SECRET_KEY seems to have a value."
+          fi
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+
       - name: CDK Bootstrap
         run: cdk bootstrap
         env:
