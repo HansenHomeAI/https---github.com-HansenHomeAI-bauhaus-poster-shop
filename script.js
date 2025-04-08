@@ -230,33 +230,26 @@ function updateCart() {
   cartCount.textContent = count
 
   // Add email input if not already present
-  let emailContainer = document.querySelector('.cart-email-container')
+  let emailContainer = document.querySelector('.cart-email-container');
   if (!emailContainer && cart.length > 0) {
-    emailContainer = document.createElement('div')
-    emailContainer.classList.add('cart-email-container')
+    emailContainer = document.createElement('div');
+    emailContainer.classList.add('cart-email-container');
     emailContainer.innerHTML = `
       <label for="cart-email">Email for shipping updates:</label>
       <input type="email" id="cart-email" placeholder="Enter your email" required>
-    `
-    
-    // Insert email container before cart footer
-    const cartFooter = document.querySelector('.cart-footer')
-    cartFooter.parentNode.insertBefore(emailContainer, cartFooter)
+    `;
+    cartItems.insertAdjacentElement('afterend', emailContainer);
     
     // Enable/disable checkout button based on email validity
-    const emailInput = emailContainer.querySelector('#cart-email')
-    const checkoutBtn = document.getElementById('checkout-btn')
-    
+    const emailInput = emailContainer.querySelector('#cart-email');
     emailInput.addEventListener('input', () => {
-      const isValid = emailInput.checkValidity()
-      checkoutBtn.disabled = !isValid
-      emailInput.classList.toggle('error', !isValid)
-    })
+      checkoutBtn.disabled = !emailInput.checkValidity();
+    });
     
     // Initially disable checkout button
-    checkoutBtn.disabled = true
+    checkoutBtn.disabled = true;
   } else if (cart.length === 0 && emailContainer) {
-    emailContainer.remove()
+    emailContainer.remove();
   }
 }
 
@@ -404,90 +397,72 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             })
         });
 
-        const data = await response.json();
-        if (response.ok) {
-            // Initialize Stripe Elements
-            const stripe = Stripe('pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
-            
-            // Create payment element options
-            const options = {
-                clientSecret: data.clientSecret,
-                appearance: {
-                    theme: 'flat',
-                    variables: {
-                        colorPrimary: '#256F8A',
-                        colorBackground: '#EFEEE7',
-                        colorText: '#1E1E1E',
-                        colorDanger: '#BA3B1A',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        borderRadius: '4px',
-                        spacingUnit: '4px'
+        const { clientSecret } = await response.json();
+
+        // Create payment element with expanded payment method options
+        const appearance = {
+            theme: 'stripe',
+            variables: {
+                colorPrimary: '#0570de',
+                colorBackground: '#ffffff',
+                colorText: '#30313d',
+                colorDanger: '#df1b41',
+                fontFamily: 'Ideal Sans, system-ui, sans-serif',
+                borderRadius: '4px'
+            }
+        };
+
+        const paymentElementOptions = {
+            layout: "tabs",
+            paymentMethodOrder: ['card', 'apple_pay', 'google_pay']
+        };
+
+        const elements = stripe.elements({
+            appearance,
+            clientSecret
+        });
+
+        const paymentElement = elements.create("payment", paymentElementOptions);
+        paymentElement.mount("#payment-element");
+
+        // Show checkout section
+        showSection('checkout-section');
+
+        // Handle form submission
+        const form = document.querySelector("#payment-form");
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            setLoading(true);
+
+            const { error } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    return_url: window.location.href,
+                    payment_method_data: {
+                        billing_details: {
+                            email: localStorage.getItem('customerEmail')
+                        }
                     }
-                }
-            };
-
-            // Create and mount the payment element
-            const elements = stripe.elements(options);
-            const paymentElement = elements.create('payment');
-            paymentElement.mount('#payment-element');
-
-            // Display order details
-            const orderSummary = document.getElementById('order-details');
-            orderSummary.innerHTML = ''; // Clear existing content
-            
-            // Add customer email
-            const emailDiv = document.createElement('div');
-            emailDiv.classList.add('customer-email');
-            emailDiv.innerHTML = `<p>Order confirmation will be sent to: ${localStorage.getItem('customerEmail')}</p>`;
-            orderSummary.appendChild(emailDiv);
-
-            // Add items
-            let total = 0;
-            cartItems.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.innerHTML = `<p>${item.name} x ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</p>`;
-                orderSummary.appendChild(itemDiv);
-                total += item.price * item.quantity;
+                },
+                redirect: "if_required"
             });
 
-            // Add total
-            const totalDiv = document.createElement('div');
-            totalDiv.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
-            orderSummary.appendChild(totalDiv);
+            if (error) {
+                const messageContainer = document.querySelector("#payment-message");
+                messageContainer.textContent = error.message;
+                messageContainer.classList.remove("hidden");
+                setLoading(false);
+            } else {
+                // Payment successful
+                localStorage.removeItem('cartItems');
+                updateCartCount();
+                showSection('success-section');
+            }
+        });
 
-            // Show checkout section
-            showSection('checkout-section');
-
-            // Handle form submission
-            const form = document.querySelector("#payment-form");
-            form.addEventListener("submit", async (e) => {
-                e.preventDefault();
-                setLoading(true);
-
-                const { error } = await stripe.confirmPayment({
-                    elements,
-                    confirmParams: {}
-                });
-
-                if (error) {
-                    const messageContainer = document.querySelector("#payment-message");
-                    messageContainer.textContent = error.message;
-                    messageContainer.classList.remove("hidden");
-                    setLoading(false);
-                } else {
-                    // Payment successful
-                    localStorage.removeItem('cartItems');
-                    updateCartCount();
-                    showSection('success-section');
-                }
-            });
-
-            // Close cart sidebar
-            document.getElementById('cart-sidebar').classList.remove('active');
-            document.getElementById('overlay').classList.remove('active');
-        } else {
-            throw new Error(data.error || 'Error creating checkout session');
-        }
+        // Close cart sidebar
+        document.getElementById('cart-sidebar').classList.remove('active');
+        document.getElementById('overlay').classList.remove('active');
     } catch (error) {
         console.error('Error:', error);
         alert('Error creating checkout session: ' + error.message);
@@ -512,146 +487,4 @@ function setLoading(isLoading) {
 
 // Initialize with main content visible
 showMainContent();
-
-async function initiateCheckout() {
-    try {
-        const email = document.getElementById('customer-email').value;
-        if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-            throw new Error('Please enter a valid email address');
-        }
-
-        localStorage.setItem('customerEmail', email);
-        const checkoutButton = document.getElementById('checkout-button');
-        const spinner = checkoutButton.querySelector('.spinner');
-        const buttonText = checkoutButton.querySelector('.button-text');
-
-        checkoutButton.disabled = true;
-        spinner.classList.remove('hidden');
-        buttonText.classList.add('hidden');
-
-        const cartData = {
-            items: cartItems.map(item => ({
-                id: item.id,
-                quantity: item.quantity
-            })),
-            email: email
-        };
-
-        const response = await fetch('/api/create-checkout-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cartData)
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-            // Initialize Stripe Elements
-            const stripe = Stripe('pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
-            
-            // Create payment element options with wallet support
-            const options = {
-                clientSecret: data.clientSecret,
-                appearance: {
-                    theme: 'flat',
-                    variables: {
-                        colorPrimary: '#256F8A',
-                        colorBackground: '#EFEEE7',
-                        colorText: '#1E1E1E',
-                        colorDanger: '#BA3B1A',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        borderRadius: '4px',
-                        spacingUnit: '4px'
-                    }
-                },
-                payment: {
-                    defaultPaymentMethod: 'card',
-                    wallets: {
-                        applePay: 'auto',
-                        googlePay: 'auto'
-                    }
-                }
-            };
-
-            // Create and mount the payment element
-            const elements = stripe.elements(options);
-            const paymentElement = elements.create('payment');
-            paymentElement.mount('#payment-element');
-
-            // Display order details
-            const orderSummary = document.getElementById('order-details');
-            orderSummary.innerHTML = ''; // Clear existing content
-            
-            // Add customer email
-            const emailDiv = document.createElement('div');
-            emailDiv.classList.add('customer-email');
-            emailDiv.innerHTML = `<p>Order confirmation will be sent to: ${email}</p>`;
-            orderSummary.appendChild(emailDiv);
-
-            // Add items
-            let total = 0;
-            cartItems.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.innerHTML = `<p>${item.name} x ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</p>`;
-                orderSummary.appendChild(itemDiv);
-                total += item.price * item.quantity;
-            });
-
-            // Add total
-            const totalDiv = document.createElement('div');
-            totalDiv.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
-            orderSummary.appendChild(totalDiv);
-
-            // Show checkout section
-            showSection('checkout-section');
-
-            // Handle form submission
-            const form = document.querySelector("#payment-form");
-            form.addEventListener("submit", async (e) => {
-                e.preventDefault();
-                setLoading(true);
-
-                const { error } = await stripe.confirmPayment({
-                    elements,
-                    confirmParams: {
-                        return_url: window.location.origin + '/success',
-                        payment_method_data: {
-                            billing_details: {
-                                email: email
-                            }
-                        }
-                    }
-                });
-
-                if (error) {
-                    const messageContainer = document.querySelector("#payment-message");
-                    messageContainer.textContent = error.message;
-                    messageContainer.classList.remove("hidden");
-                    setLoading(false);
-                }
-                // No else needed as successful payments will redirect
-            });
-
-            // Close cart sidebar
-            document.getElementById('cart-sidebar').classList.remove('active');
-            document.getElementById('overlay').classList.remove('active');
-        } else {
-            throw new Error(data.error || 'Error creating checkout session');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        const messageContainer = document.querySelector("#payment-message");
-        messageContainer.textContent = error.message;
-        messageContainer.classList.remove("hidden");
-        setLoading(false);
-    }
-}
-
-// Email validation function
-function validateEmail() {
-    const email = document.getElementById('customer-email').value;
-    const checkoutButton = document.getElementById('checkout-button');
-    const isValid = email && email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
-    checkoutButton.disabled = !isValid;
-    return isValid;
-}
 
