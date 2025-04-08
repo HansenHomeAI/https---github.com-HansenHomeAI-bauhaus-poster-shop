@@ -141,31 +141,6 @@ class BackendStack(Stack):
             }]
         )
 
-        # Add OPTIONS method for CORS preflight
-        checkout.add_method(
-            "OPTIONS",
-            apigw.MockIntegration(
-                integration_responses=[{
-                    'statusCode': '200',
-                    'responseParameters': {
-                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
-                        'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'",
-                        'method.response.header.Access-Control-Allow-Origin': "'*'"
-                    }
-                }],
-                passthrough_behavior=apigw.PassthroughBehavior.NEVER,
-                request_templates={"application/json": "{\"statusCode\": 200}"}
-            ),
-            method_responses=[{
-                'statusCode': '200',
-                'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Headers': True,
-                    'method.response.header.Access-Control-Allow-Methods': True,
-                    'method.response.header.Access-Control-Allow-Origin': True
-                }
-            }]
-        )
-
         # Add webhook endpoints
         webhook = api.root.add_resource("webhook")
         webhook.add_method(
