@@ -88,17 +88,34 @@ def handler(event, context):
             metadata={
                 "order_id": str(uuid.uuid4())
             },
-            # Add appearance customizations
+            # Add appearance customizations with brand colors
             appearance={
-                "theme": "stripe",
+                "theme": "flat",
                 "variables": {
-                    "colorPrimary": "#1E1E1E",
-                    "colorBackground": "#EFEEE7",
-                    "colorText": "#1E1E1E",
-                    "colorDanger": "#BA3B1A",
-                    "fontFamily": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                    "colorPrimary": "#256F8A",  # Your brand blue for primary actions
+                    "colorBackground": "#EFEEE7",  # Your main background color
+                    "colorText": "#1E1E1E",  # Your brand black for text
+                    "colorDanger": "#BA3B1A",  # Your brand red for errors/alerts
+                    "colorButtonText": "#FFFFFF",  # White text on buttons for contrast
+                    "borderRadius": "4px",
                     "spacingUnit": "4px",
-                    "borderRadius": "4px"
+                    "fontFamily": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+                },
+                "rules": {
+                    ".Tab": {
+                        "borderColor": "#D9D9D9",
+                        "backgroundColor": "#EFEEE7"
+                    },
+                    ".Tab--selected": {
+                        "borderColor": "#256F8A",
+                        "backgroundColor": "#EFEEE7"
+                    },
+                    ".Input": {
+                        "borderColor": "#D9D9D9"
+                    },
+                    ".Input:focus": {
+                        "borderColor": "#256F8A"
+                    }
                 }
             },
             # Add custom text
