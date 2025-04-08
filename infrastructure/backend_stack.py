@@ -41,14 +41,15 @@ class BackendStack(Stack):
             self, "CreateCheckoutFunction",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="checkout_session.handler",
-            code=_lambda.Code.from_asset("backend",
-                bundling=_lambda.BundlingOptions(
-                    image=_lambda.Runtime.PYTHON_3_9.bundling_image,
-                    command=[
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
                         "bash", "-c",
                         "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
                     ]
-                )
+                }
             ),
             timeout=Duration.seconds(30),
             environment={
@@ -63,7 +64,16 @@ class BackendStack(Stack):
             self, "StripeWebhookFunction",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="stripe_webhook.handler",
-            code=_lambda.Code.from_asset("backend"),
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             timeout=Duration.seconds(30),
             environment={
                 "STRIPE_SECRET_KEY": stripe_secret_key,
@@ -76,7 +86,16 @@ class BackendStack(Stack):
             self, "ProcessOrderFunction",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="process_order.handler",
-            code=_lambda.Code.from_asset("backend"),
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             timeout=Duration.seconds(30),
             environment={
                 "PRODIGI_API_KEY": prodigi_api_key,
@@ -90,7 +109,16 @@ class BackendStack(Stack):
             self, "ProdigiWebhookLambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="prodigi_webhook.handler",
-            code=_lambda.Code.from_asset("backend"),
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
                 "EMAIL_SENDER": email_sender
@@ -102,7 +130,16 @@ class BackendStack(Stack):
             self, "OrderStatusLambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="order_status.handler",
-            code=_lambda.Code.from_asset("backend"),
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
             }
