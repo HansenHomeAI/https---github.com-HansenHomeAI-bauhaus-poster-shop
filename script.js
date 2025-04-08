@@ -445,19 +445,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             // Initialize Stripe Elements
             const stripe = Stripe('pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
             const elements = stripe.elements({
-                clientSecret: data.clientSecret,
-                appearance: {
-                    theme: 'flat',
-                    variables: {
-                        colorPrimary: '#256F8A',
-                        colorBackground: '#EFEEE7',
-                        colorText: '#1E1E1E',
-                        colorDanger: '#BA3B1A',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        borderRadius: '4px',
-                        spacingUnit: '4px'
-                    }
-                }
+                clientSecret: data.clientSecret
             });
 
             // Create and mount the payment element
@@ -492,13 +480,16 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             showSection('checkout-section');
 
             // Handle form submission
-            document.querySelector("#payment-form").addEventListener("submit", async (e) => {
+            const form = document.querySelector("#payment-form");
+            form.addEventListener("submit", async (e) => {
                 e.preventDefault();
                 setLoading(true);
 
                 const { error } = await stripe.confirmPayment({
                     elements,
-                    confirmParams: {}
+                    confirmParams: {
+                        return_url: window.location.origin + '/success.html'
+                    }
                 });
 
                 if (error) {

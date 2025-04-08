@@ -84,10 +84,9 @@ def handler(event, context):
             line_items=line_items,
             mode="payment",
             customer_email=customer_email,
-            # Use embedded mode
-            ui_mode="embedded",
-            # Redirect to our custom checkout page with the client secret
-            redirect_on_completion="never",
+            payment_intent_data={
+                "setup_future_usage": "off_session"
+            },
             metadata={
                 "order_id": str(uuid.uuid4())
             },
@@ -108,10 +107,15 @@ def handler(event, context):
             billing_address_collection="required",
             shipping_address_collection={
                 "allowed_countries": ["US", "CA", "GB", "DE", "FR", "IT", "ES", "NL", "BE", "DK", "SE", "NO", "FI", "AT", "CH", "IE", "PT", "GR", "CZ", "HU", "PL", "SK", "SI", "HR", "RO", "BG", "EE", "LV", "LT", "MT", "CY", "LU", "IS", "LI", "MC", "SM", "VA", "AD"]
-            }
+            },
+            success_url=success_url,
+            cancel_url=cancel_url
         )
         
         logger.info("Successfully created Stripe session: %s", session.id)
+        
+        # Retrieve the payment intent
+        payment_intent = stripe.PaymentIntent.retrieve(session.payment_intent)
         
         return {
             "statusCode": 200,
@@ -123,8 +127,8 @@ def handler(event, context):
                 'Content-Type': 'application/json'
             },
             "body": json.dumps({
-                "clientSecret": session.client_secret,
-                "url": f"https://hansenhomeai.github.io/checkout.html?client_secret={session.client_secret}"
+                "clientSecret": payment_intent.client_secret,
+                "sessionId": session.id
             })
         }
     except Exception as e:
