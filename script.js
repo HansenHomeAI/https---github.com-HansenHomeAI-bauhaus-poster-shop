@@ -276,7 +276,7 @@ async function checkout() {
     const customerEmail = document.getElementById('customer-email').value;
 
     try {
-        const response = await fetch('https://your-api-gateway-url/prod/checkout', {
+        const response = await fetch('https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod/checkout', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
