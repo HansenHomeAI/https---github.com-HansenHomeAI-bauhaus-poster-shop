@@ -296,14 +296,22 @@ async function checkout() {
       })
     })
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create checkout session');
+    }
+
     const { sessionId } = await response.json()
 
     // Redirect to Stripe Checkout
-    const stripe = Stripe("YOUR_STRIPE_PUBLISHABLE_KEY")
-    await stripe.redirectToCheckout({ sessionId })
+    const result = await stripe.redirectToCheckout({ sessionId })
+    
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
   } catch (error) {
     console.error("Error during checkout:", error)
-    alert("There was an error processing your checkout")
+    alert(`There was an error processing your checkout: ${error.message}`)
   }
 }
 

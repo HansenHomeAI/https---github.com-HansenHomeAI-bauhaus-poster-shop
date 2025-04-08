@@ -7,6 +7,18 @@ import uuid
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
 def handler(event, context):
+    # Handle CORS preflight request
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+            },
+            'body': ''
+        }
+
     body = json.loads(event.get("body", "{}"))
     items = body.get("items", [])
     customer_email = body.get("customer_email")
@@ -41,10 +53,20 @@ def handler(event, context):
         )
         return {
             "statusCode": 200,
+            "headers": {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+            },
             "body": json.dumps({"sessionId": session.id})
         }
     except Exception as e:
         return {
             "statusCode": 400,
+            "headers": {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type',
+            },
             "body": json.dumps({"error": str(e)})
         } 
