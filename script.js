@@ -235,15 +235,27 @@ function updateCart() {
     emailContainer = document.createElement('div');
     emailContainer.classList.add('cart-email-container');
     emailContainer.innerHTML = `
-      <label for="cart-email">Email for shipping updates:</label>
-      <input type="email" id="cart-email" placeholder="Enter your email" required>
+      <div class="email-input-wrapper">
+        <input type="email" id="cart-email" placeholder=" " required>
+        <label for="cart-email">Email for Order Updates</label>
+        <div class="email-validation-message">Please enter a valid email address</div>
+      </div>
     `;
     cartItems.insertAdjacentElement('afterend', emailContainer);
     
     // Enable/disable checkout button based on email validity
     const emailInput = emailContainer.querySelector('#cart-email');
+    const validationMessage = emailContainer.querySelector('.email-validation-message');
+    
     emailInput.addEventListener('input', () => {
-      checkoutBtn.disabled = !emailInput.checkValidity();
+      const isValid = emailInput.checkValidity();
+      checkoutBtn.disabled = !isValid;
+      validationMessage.style.opacity = isValid ? '0' : '1';
+      emailContainer.classList.toggle('invalid', !isValid);
+      
+      if (isValid) {
+        localStorage.setItem('customerEmail', emailInput.value);
+      }
     });
     
     // Initially disable checkout button
@@ -398,6 +410,43 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         });
 
         const { clientSecret } = await response.json();
+
+        // Display order summary in checkout page
+        const orderSummarySection = document.createElement('div');
+        orderSummarySection.classList.add('order-summary-section');
+        
+        let summaryHTML = '<h2>Order Summary</h2><div class="order-items">';
+        let total = 0;
+        
+        cartItems.forEach(item => {
+            summaryHTML += `
+                <div class="order-item">
+                    <div class="order-item-details">
+                        <span class="order-item-name">${item.name}</span>
+                        <span class="order-item-quantity">× ${item.quantity}</span>
+                    </div>
+                    <span class="order-item-price">$${(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+            `;
+            total += item.price * item.quantity;
+        });
+        
+        summaryHTML += `
+            <div class="order-total">
+                <strong>Total</strong>
+                <strong>$${total.toFixed(2)}</strong>
+            </div>
+            <div class="order-email">
+                <span>Order confirmation will be sent to:</span>
+                <span class="customer-email">${localStorage.getItem('customerEmail')}</span>
+            </div>
+        </div>`;
+        
+        orderSummarySection.innerHTML = summaryHTML;
+        
+        // Insert order summary before payment element
+        const paymentElementContainer = document.querySelector("#payment-element");
+        paymentElementContainer.parentElement.insertBefore(orderSummarySection, paymentElementContainer);
 
         // Create payment element with expanded payment method options
         const appearance = {

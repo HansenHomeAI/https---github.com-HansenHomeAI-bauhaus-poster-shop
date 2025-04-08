@@ -953,3 +953,142 @@ footer {
     font-weight: bold;
 }
 
+.order-summary-section {
+    background: #f8f8f8;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 32px;
+}
+
+.order-summary-section h2 {
+    margin: 0 0 20px 0;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.order-items {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.order-item-details {
+    display: flex;
+    gap: 8px;
+}
+
+.order-item-name {
+    font-weight: 500;
+}
+
+.order-item-quantity {
+    color: #666;
+}
+
+.order-item-price {
+    font-weight: 500;
+}
+
+.order-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px solid #ddd;
+    font-size: 1.2rem;
+}
+
+.order-email {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.order-email .customer-email {
+    display: block;
+    margin-top: 4px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* Email input styling */
+.cart-email-container {
+    margin: 24px 0;
+    padding: 0 16px;
+}
+
+.email-input-wrapper {
+    position: relative;
+    margin-top: 16px;
+}
+
+.email-input-wrapper input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: transparent;
+}
+
+.email-input-wrapper label {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    padding: 0 4px;
+    color: #666;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.email-input-wrapper input:focus,
+.email-input-wrapper input:not(:placeholder-shown) {
+    border-color: #256F8A;
+    outline: none;
+}
+
+.email-input-wrapper input:focus + label,
+.email-input-wrapper input:not(:placeholder-shown) + label {
+    top: 0;
+    font-size: 14px;
+    color: #256F8A;
+}
+
+.email-validation-message {
+    position: absolute;
+    left: 0;
+    bottom: -20px;
+    font-size: 12px;
+    color: #df1b41;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.email-input-wrapper.invalid input {
+    border-color: #df1b41;
+}
+
+.email-input-wrapper.invalid label {
+    color: #df1b41;
+}
+
+/* Disable checkout button styling */
+#checkout-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #ccc;
+}
+
