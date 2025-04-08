@@ -88,11 +88,18 @@ def handler(event, context):
             metadata={
                 "order_id": str(uuid.uuid4())
             },
-            # Add branding customizations
-            branding={
-                "logo_url": "https://hansenhomeai.github.io/images/logo.png",  # Your logo URL
-                "primary_color": "#000000",  # Your brand's primary color
-                "secondary_color": "#FFFFFF"  # Your brand's secondary color
+            # Add appearance customizations
+            appearance={
+                "theme": "stripe",
+                "variables": {
+                    "colorPrimary": "#000000",
+                    "colorBackground": "#FFFFFF",
+                    "colorText": "#000000",
+                    "colorDanger": "#FF0000",
+                    "fontFamily": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                    "spacingUnit": "4px",
+                    "borderRadius": "4px"
+                }
             },
             # Add custom text
             custom_text={
