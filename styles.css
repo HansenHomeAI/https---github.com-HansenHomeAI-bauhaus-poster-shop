@@ -1,9 +1,12 @@
 /* Base Styles */
 :root {
-  --bg-color: #F5F5F3;
+  --bg-color: #EFEEE7;
   --text-color: #1E1E1E;
-  --accent-orange: #F26B3A;
-  --accent-blue: #2B7B8C;
+  --accent-orange: #E26E1D;
+  --accent-blue: #256F8A;
+  --accent-red: #BA3B1A;
+  --accent-yellow: #EBB640;
+  --divider-color: #D9D9D9;
   --transition: all 0.3s ease;
   --border-radius: 12px;
   --button-radius: 8px;
@@ -147,7 +150,7 @@ nav {
   position: absolute;
   top: -8px;
   right: -8px;
-  background-color: var(--accent-orange);
+  background-color: var(--accent-blue);
   color: var(--bg-color);
   font-size: 0.7rem;
   width: 18px;
@@ -476,7 +479,7 @@ footer {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--divider-color);
 }
 
 .cart-item-image {
@@ -555,6 +558,7 @@ footer {
   font-weight: 600;
   font-size: 1.2rem;
   margin-bottom: 1.5rem;
+  border-top: 1px solid var(--divider-color);
 }
 
 .cart-footer .btn {
@@ -575,6 +579,7 @@ footer {
   opacity: 0;
   visibility: hidden;
   transition: var(--transition);
+  background-color: var(--bg-color);
 }
 
 .modal.open {

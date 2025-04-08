@@ -92,10 +92,10 @@ def handler(event, context):
             appearance={
                 "theme": "stripe",
                 "variables": {
-                    "colorPrimary": "#000000",
-                    "colorBackground": "#FFFFFF",
-                    "colorText": "#000000",
-                    "colorDanger": "#FF0000",
+                    "colorPrimary": "#1E1E1E",
+                    "colorBackground": "#EFEEE7",
+                    "colorText": "#1E1E1E",
+                    "colorDanger": "#BA3B1A",
                     "fontFamily": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
                     "spacingUnit": "4px",
                     "borderRadius": "4px"
