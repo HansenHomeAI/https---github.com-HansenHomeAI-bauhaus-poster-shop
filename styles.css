@@ -829,3 +829,127 @@ footer {
     display: none;
 }
 
+/* Page Sections */
+.page-section {
+    min-height: 80vh;
+    padding: 4rem 0;
+    background-color: var(--bg-color);
+}
+
+.page-section.hidden {
+    display: none;
+}
+
+.message-container {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 2rem;
+    background-color: #EFEEE7;
+    border-radius: var(--border-radius);
+}
+
+.message-container h2 {
+    color: #1E1E1E;
+    margin-bottom: 1rem;
+}
+
+.message-container p {
+    margin-bottom: 2rem;
+    color: #4A4A4A;
+}
+
+/* Checkout Styles */
+.checkout-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: var(--bg-color);
+}
+
+#payment-element {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.checkout-button {
+    background-color: #256F8A;
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    width: 100%;
+    font-size: 1.1rem;
+    transition: background-color 0.2s ease;
+}
+
+.checkout-button:hover {
+    background-color: #1a5c75;
+}
+
+.checkout-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+#payment-message {
+    color: #BA3B1A;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none;
+}
+
+/* Order Summary Styles */
+.order-summary {
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background-color: #EFEEE7;
+    border-radius: var(--border-radius);
+}
+
+.order-summary h3 {
+    color: #1E1E1E;
+    margin-bottom: 1.5rem;
+}
+
+.customer-email {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.customer-email p {
+    color: #256F8A;
+    margin: 0;
+}
+
+#order-details div {
+    margin-bottom: 0.5rem;
+}
+
+#order-details div:last-child {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ddd;
+    font-weight: bold;
+}
+

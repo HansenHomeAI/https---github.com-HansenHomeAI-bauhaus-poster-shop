@@ -76,6 +76,43 @@
     </section>
   </main>
 
+  <!-- Checkout Section -->
+  <section id="checkout-section" class="page-section hidden">
+    <div class="checkout-container">
+      <div class="order-summary">
+        <h3>Order Summary</h3>
+        <div id="order-details"></div>
+      </div>
+
+      <form id="payment-form">
+        <div id="payment-element"></div>
+        <button id="submit" class="checkout-button">
+          <span id="button-text">Pay now</span>
+          <div class="spinner hidden" id="spinner"></div>
+        </button>
+        <div id="payment-message" class="hidden"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Success Section -->
+  <section id="success-section" class="page-section hidden">
+    <div class="message-container">
+      <h2>Payment Successful!</h2>
+      <p>Thank you for your purchase. You will receive an email confirmation shortly.</p>
+      <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
+    </div>
+  </section>
+
+  <!-- Cancel Section -->
+  <section id="cancel-section" class="page-section hidden">
+    <div class="message-container">
+      <h2>Payment Cancelled</h2>
+      <p>Your payment was cancelled. If you have any questions, please contact us.</p>
+      <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
+    </div>
+  </section>
+
   <footer>
     <div class="container">
       <div class="footer-content">

@@ -393,3 +393,155 @@ function createProdigiOrder(orderData) {
   }
 }
 
+// Page section management
+function hideAllSections() {
+    document.querySelectorAll('.page-section').forEach(section => {
+        section.classList.add('hidden');
+    });
+    document.querySelectorAll('main > section').forEach(section => {
+        section.style.display = 'none';
+    });
+}
+
+function showMainContent() {
+    hideAllSections();
+    document.querySelectorAll('main > section').forEach(section => {
+        section.style.display = 'block';
+    });
+    window.scrollTo(0, 0);
+}
+
+function showSection(sectionId) {
+    hideAllSections();
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.remove('hidden');
+        window.scrollTo(0, 0);
+    }
+}
+
+// Update checkout button click handler
+document.getElementById('checkout-btn').addEventListener('click', async () => {
+    const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+    if (cartItems.length === 0) {
+        alert('Your cart is empty');
+        return;
+    }
+
+    try {
+        const response = await fetch('https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod/checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                items: cartItems,
+                customerEmail: localStorage.getItem('customerEmail')
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            // Initialize Stripe Elements
+            const stripe = Stripe('pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
+            const elements = stripe.elements({
+                clientSecret: data.clientSecret,
+                appearance: {
+                    theme: 'flat',
+                    variables: {
+                        colorPrimary: '#256F8A',
+                        colorBackground: '#EFEEE7',
+                        colorText: '#1E1E1E',
+                        colorDanger: '#BA3B1A',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        borderRadius: '4px',
+                        spacingUnit: '4px'
+                    }
+                }
+            });
+
+            // Create and mount the payment element
+            const paymentElement = elements.create('payment');
+            paymentElement.mount('#payment-element');
+
+            // Display order details
+            const orderSummary = document.getElementById('order-details');
+            orderSummary.innerHTML = ''; // Clear existing content
+            
+            // Add customer email
+            const emailDiv = document.createElement('div');
+            emailDiv.classList.add('customer-email');
+            emailDiv.innerHTML = `<p>Order confirmation will be sent to: ${localStorage.getItem('customerEmail')}</p>`;
+            orderSummary.appendChild(emailDiv);
+
+            // Add items
+            let total = 0;
+            cartItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.innerHTML = `<p>${item.name} x ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</p>`;
+                orderSummary.appendChild(itemDiv);
+                total += item.price * item.quantity;
+            });
+
+            // Add total
+            const totalDiv = document.createElement('div');
+            totalDiv.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
+            orderSummary.appendChild(totalDiv);
+
+            // Show checkout section
+            showSection('checkout-section');
+
+            // Handle form submission
+            document.querySelector("#payment-form").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                setLoading(true);
+
+                const { error } = await stripe.confirmPayment({
+                    elements,
+                    confirmParams: {}
+                });
+
+                if (error) {
+                    const messageContainer = document.querySelector("#payment-message");
+                    messageContainer.textContent = error.message;
+                    messageContainer.classList.remove("hidden");
+                    setLoading(false);
+                } else {
+                    // Payment successful
+                    localStorage.removeItem('cartItems');
+                    updateCartCount();
+                    showSection('success-section');
+                }
+            });
+
+            // Close cart sidebar
+            document.getElementById('cart-sidebar').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+        } else {
+            throw new Error(data.error || 'Error creating checkout session');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating checkout session: ' + error.message);
+    }
+});
+
+function setLoading(isLoading) {
+    const submitButton = document.querySelector("#submit");
+    const spinner = document.querySelector("#spinner");
+    const buttonText = document.querySelector("#button-text");
+
+    if (isLoading) {
+        submitButton.disabled = true;
+        spinner.classList.remove("hidden");
+        buttonText.classList.add("hidden");
+    } else {
+        submitButton.disabled = false;
+        spinner.classList.add("hidden");
+        buttonText.classList.remove("hidden");
+    }
+}
+
+// Initialize with main content visible
+showMainContent();
+
