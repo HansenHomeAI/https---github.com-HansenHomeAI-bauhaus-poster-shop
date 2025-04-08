@@ -549,7 +549,8 @@ footer {
 
 .cart-footer {
   padding: 1.5rem;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--divider-color);
+  background-color: var(--bg-color);
 }
 
 .cart-total {
@@ -557,12 +558,72 @@ footer {
   justify-content: space-between;
   font-weight: 600;
   font-size: 1.2rem;
-  margin-bottom: 1.5rem;
-  border-top: 1px solid var(--divider-color);
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--divider-color);
 }
 
-.cart-footer .btn {
+#checkout-btn {
   width: 100%;
+  margin-top: 1rem;
+  background-color: var(--accent-blue);
+  color: white;
+  border: none;
+  font-weight: 500;
+  padding: 1rem;
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+#checkout-btn:hover {
+  background-color: var(--text-color);
+}
+
+#checkout-btn:disabled {
+  background-color: var(--divider-color);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Cart Email Input Styles */
+.cart-email-container {
+  padding: 1.5rem;
+  border-top: 1px solid var(--divider-color);
+  background-color: var(--bg-color);
+}
+
+.cart-email-container label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+#cart-email {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--button-radius);
+  font-size: 1rem;
+  font-family: var(--font-family);
+  background-color: white;
+  transition: var(--transition);
+}
+
+#cart-email:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(37, 111, 138, 0.1);
+}
+
+#cart-email::placeholder {
+  color: #999;
+}
+
+#cart-email.error {
+  border-color: var(--accent-red);
 }
 
 /* Modal */

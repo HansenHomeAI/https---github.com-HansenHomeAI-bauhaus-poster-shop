@@ -230,26 +230,33 @@ function updateCart() {
   cartCount.textContent = count
 
   // Add email input if not already present
-  let emailContainer = document.querySelector('.cart-email-container');
+  let emailContainer = document.querySelector('.cart-email-container')
   if (!emailContainer && cart.length > 0) {
-    emailContainer = document.createElement('div');
-    emailContainer.classList.add('cart-email-container');
+    emailContainer = document.createElement('div')
+    emailContainer.classList.add('cart-email-container')
     emailContainer.innerHTML = `
       <label for="cart-email">Email for shipping updates:</label>
       <input type="email" id="cart-email" placeholder="Enter your email" required>
-    `;
-    cartItems.insertAdjacentElement('afterend', emailContainer);
+    `
+    
+    // Insert email container before cart footer
+    const cartFooter = document.querySelector('.cart-footer')
+    cartFooter.parentNode.insertBefore(emailContainer, cartFooter)
     
     // Enable/disable checkout button based on email validity
-    const emailInput = emailContainer.querySelector('#cart-email');
+    const emailInput = emailContainer.querySelector('#cart-email')
+    const checkoutBtn = document.getElementById('checkout-btn')
+    
     emailInput.addEventListener('input', () => {
-      checkoutBtn.disabled = !emailInput.checkValidity();
-    });
+      const isValid = emailInput.checkValidity()
+      checkoutBtn.disabled = !isValid
+      emailInput.classList.toggle('error', !isValid)
+    })
     
     // Initially disable checkout button
-    checkoutBtn.disabled = true;
+    checkoutBtn.disabled = true
   } else if (cart.length === 0 && emailContainer) {
-    emailContainer.remove();
+    emailContainer.remove()
   }
 }
 
