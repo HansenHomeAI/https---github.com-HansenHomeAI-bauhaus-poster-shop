@@ -87,6 +87,36 @@ def handler(event, context):
             cancel_url=cancel_url,
             metadata={
                 "order_id": str(uuid.uuid4())
+            },
+            # Add branding customizations
+            branding={
+                "logo_url": "https://hansenhomeai.github.io/images/logo.png",  # Your logo URL
+                "primary_color": "#000000",  # Your brand's primary color
+                "secondary_color": "#FFFFFF"  # Your brand's secondary color
+            },
+            # Add custom text
+            custom_text={
+                "submit": {
+                    "message": "Thank you for supporting Bauhaus Poster Shop!"
+                }
+            },
+            # Add shipping options if needed
+            shipping_options=[
+                {
+                    "shipping_rate_data": {
+                        "type": "fixed_amount",
+                        "fixed_amount": {
+                            "amount": 0,
+                            "currency": "usd"
+                        },
+                        "display_name": "Free shipping"
+                    }
+                }
+            ],
+            # Add customer details collection
+            billing_address_collection="required",
+            shipping_address_collection={
+                "allowed_countries": ["US", "CA", "GB", "DE", "FR", "IT", "ES", "NL", "BE", "DK", "SE", "NO", "FI", "AT", "CH", "IE", "PT", "GR", "CZ", "HU", "PL", "SK", "SI", "HR", "RO", "BG", "EE", "LV", "LT", "MT", "CY", "LU", "IS", "LI", "MC", "SM", "VA", "AD"]
             }
         )
         
