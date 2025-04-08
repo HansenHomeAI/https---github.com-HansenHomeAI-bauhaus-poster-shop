@@ -108,7 +108,8 @@ class BackendStack(Stack):
             default_cors_preflight_options=apigw.CorsOptions(
                 allow_origins=["*"],
                 allow_methods=["GET", "POST", "OPTIONS"],
-                allow_headers=["Content-Type", "Authorization", "Origin", "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"],
+                allow_headers=["*"],
+                allow_credentials=False,
                 max_age=Duration.days(1)
             )
         )
@@ -122,7 +123,7 @@ class BackendStack(Stack):
                 'statusCode': '200',
                 'responseParameters': {
                     'method.response.header.Access-Control-Allow-Origin': "'*'",
-                    'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
+                    'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
             }]
