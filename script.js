@@ -47,7 +47,7 @@ const overlay = document.getElementById("overlay")
 const checkoutBtn = document.getElementById("checkout-btn")
 
 // API Gateway URL (replace with your actual API Gateway URL after deployment)
-const API_URL = "https://18yg3ffw73.execute-api.us-west-2.amazonaws.com/prod"
+const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
 
 // Initialize Stripe
 let stripe
@@ -272,47 +272,47 @@ function closeCart() {
 
 // Checkout
 async function checkout() {
-  if (cart.length === 0) {
-    alert("Your cart is empty")
-    return
-  }
-
   try {
-    // Prepare the checkout session request
     const response = await fetch(`${API_URL}/checkout`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Origin": window.location.origin
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin
       },
+      mode: 'cors',
       body: JSON.stringify({
         items: cart.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
           name: item.name,
-          description: item.description,
-          image: item.image,
-          price: item.price,
-          quantity: item.quantity
+          price: item.price
         })),
-        customer_email: "customer@example.com" // You might want to collect this from the user
+        customerEmail: 'customer@example.com' // You might want to collect this from the user
       })
-    })
+    });
 
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to create checkout session');
     }
 
-    const { sessionId } = await response.json()
+    const data = await response.json();
+    
+    if (!data.sessionId) {
+      throw new Error('No session ID returned from the server');
+    }
 
     // Redirect to Stripe Checkout
-    const result = await stripe.redirectToCheckout({ sessionId })
+    const result = await stripe.redirectToCheckout({
+      sessionId: data.sessionId
+    });
     
     if (result.error) {
       throw new Error(result.error.message);
     }
   } catch (error) {
-    console.error("Error during checkout:", error)
-    alert(`There was an error processing your checkout: ${error.message}`)
+    console.error("Error during checkout:", error);
+    alert(`There was an error processing your checkout: ${error.message}`);
   }
 }
 
