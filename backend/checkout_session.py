@@ -10,7 +10,7 @@ logger.setLevel(logging.INFO)
 
 # Initialize Stripe with your secret key
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
-stripe.api_version = "2025-03-31"
+stripe.api_version = "2025-03-31.basil"
 
 # Default URLs for GitHub Pages
 DEFAULT_SUCCESS_URL = "https://hansenhomeai.github.io/success.html"
