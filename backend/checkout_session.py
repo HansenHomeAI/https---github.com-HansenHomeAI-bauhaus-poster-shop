@@ -88,7 +88,6 @@ def handler(event, context):
             ui_mode="embedded",
             # Redirect to our custom checkout page with the client secret
             redirect_on_completion="never",
-            return_url="https://hansenhomeai.github.io/success.html",
             metadata={
                 "order_id": str(uuid.uuid4())
             },

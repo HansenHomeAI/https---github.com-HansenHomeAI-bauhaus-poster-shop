@@ -174,8 +174,8 @@
             const { error } = await stripe.confirmPayment({
                 elements,
                 confirmParams: {
-                    return_url: "https://hansenhomeai.github.io/success.html",
-                }
+                    // Remove return_url since we're using embedded mode
+                },
             });
 
             if (error) {
@@ -183,6 +183,9 @@
                 messageContainer.textContent = error.message;
                 messageContainer.classList.remove("hidden");
                 setLoading(false);
+            } else {
+                // Payment successful - redirect to success page
+                window.location.href = "https://hansenhomeai.github.io/success.html";
             }
         }
 
