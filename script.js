@@ -279,20 +279,19 @@ async function checkout() {
 
   try {
     // Prepare the checkout session request
-    const response = await fetch(`${API_URL}/create-checkout-session`, {
+    const response = await fetch(`${API_URL}/checkout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Origin": window.location.origin
       },
       body: JSON.stringify({
         items: cart.map(item => ({
-          name: item.name,
-          description: item.description,
-          image: item.image,
-          price: item.price,
+          id: item.id,
           quantity: item.quantity
         })),
-        customer_email: "customer@example.com" // Replace with actual customer email
+        success_url: window.location.origin + "/success.html",
+        cancel_url: window.location.origin + "/cancel.html"
       })
     })
 

@@ -77,18 +77,41 @@ class BackendStack(Stack):
             }
         )
 
-        # Create API Gateway
+        # Create API Gateway with CORS enabled
         api = apigw.RestApi(
             self, "PosterShopApi",
             rest_api_name="Poster Shop API",
-            description="API for the Bauhaus Poster Shop"
+            description="API for the Bauhaus Poster Shop",
+            default_cors_preflight_options=apigw.CorsOptions(
+                allow_origins=["*"],
+                allow_methods=["GET", "POST", "OPTIONS"],
+                allow_headers=["Content-Type", "Authorization", "Origin"],
+                max_age=Duration.days(1)
+            )
         )
 
-        # Add resources and methods
+        # Add resources and methods with CORS
         checkout = api.root.add_resource("checkout")
+        checkout_integration = apigw.LambdaIntegration(
+            create_checkout_lambda,
+            proxy=False,
+            integration_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': "'*'"
+                }
+            }]
+        )
+        
         checkout.add_method(
             "POST",
-            apigw.LambdaIntegration(create_checkout_lambda)
+            checkout_integration,
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True
+                }
+            }]
         )
 
         webhook = api.root.add_resource("webhook")
