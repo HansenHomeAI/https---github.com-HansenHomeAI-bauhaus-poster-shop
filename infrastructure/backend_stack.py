@@ -11,19 +11,8 @@ from aws_cdk import (
 from constructs import Construct
 
 class BackendStack(Stack):
-    def __init__(
-        self, 
-        scope: Construct, 
-        id: str, 
-        stripe_secret_key: str,
-        stripe_webhook_secret: str,
-        prodigi_api_key: str,
-        email_sender: str,
-        success_url: str,
-        cancel_url: str,
-        **kwargs
-    ):
-        super().__init__(scope, id, **kwargs)
+    def __init__(self, scope: Construct, construct_id: str, context: dict, **kwargs) -> None:
+        super().__init__(scope, construct_id, **kwargs)
 
         # Create DynamoDB table for orders
         orders_table = dynamodb.Table(
@@ -81,7 +70,7 @@ class BackendStack(Stack):
             ),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
-                "EMAIL_SENDER": email_sender
+                "EMAIL_SENDER": self.node.try_get_context('email_sender')
             }
         )
 
