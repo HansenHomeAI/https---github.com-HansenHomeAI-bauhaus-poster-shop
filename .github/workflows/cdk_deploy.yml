@@ -2,13 +2,15 @@ name: CDK Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -22,7 +24,6 @@ jobs:
           pip install -r requirements.txt
           pip install -r backend/requirements.txt
           pip install aws-cdk-lib constructs
-          npm install -g aws-cdk
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -31,15 +32,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
-      - name: CDK Bootstrap (if needed)
-        run: cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/us-west-2
+      - name: CDK Bootstrap
+        run: cdk bootstrap
         env:
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          PRODIGI_API_KEY: ${{ secrets.PRODIGI_API_KEY }}
-          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
-          SUCCESS_URL: ${{ secrets.SUCCESS_URL }}
-          CANCEL_URL: ${{ secrets.CANCEL_URL }}
+          CDK_DEFAULT_REGION: us-west-2
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
 
       - name: CDK Deploy
         run: cdk deploy --require-approval never

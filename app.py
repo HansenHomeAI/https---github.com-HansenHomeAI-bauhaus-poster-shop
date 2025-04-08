@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 import os
-import aws_cdk as cdk
+from aws_cdk import App, Environment
+
 from infrastructure.backend_stack import BackendStack
 
-app = cdk.App()
+app = App()
+
+env = Environment(
+    account=os.getenv('CDK_DEFAULT_ACCOUNT'),
+    region=os.getenv('CDK_DEFAULT_REGION')
+)
 
 # Get environment variables
 stripe_secret_key = os.getenv('STRIPE_SECRET_KEY')
@@ -16,11 +22,8 @@ cancel_url = os.getenv('CANCEL_URL')
 # Create the stack with environment variables
 BackendStack(
     app, 
-    "BackendStack",
-    env=cdk.Environment(
-        account=os.getenv('CDK_DEFAULT_ACCOUNT'),
-        region=os.getenv('CDK_DEFAULT_REGION', 'us-west-2')
-    ),
+    "BauhausPosterShopBackend",
+    env=env,
     stripe_secret_key=stripe_secret_key,
     stripe_webhook_secret=stripe_webhook_secret,
     prodigi_api_key=prodigi_api_key,
