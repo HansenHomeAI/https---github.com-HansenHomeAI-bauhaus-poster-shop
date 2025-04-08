@@ -41,7 +41,15 @@ class BackendStack(Stack):
             self, "CreateCheckoutFunction",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="checkout_session.handler",
-            code=_lambda.Code.from_asset("backend"),
+            code=_lambda.Code.from_asset("backend",
+                bundling=_lambda.BundlingOptions(
+                    image=_lambda.Runtime.PYTHON_3_9.bundling_image,
+                    command=[
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                )
+            ),
             timeout=Duration.seconds(30),
             environment={
                 "STRIPE_SECRET_KEY": stripe_secret_key,
