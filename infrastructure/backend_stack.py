@@ -40,7 +40,7 @@ class BackendStack(Stack):
         create_checkout_lambda = _lambda.Function(
             self, "CreateCheckoutFunction",
             runtime=_lambda.Runtime.PYTHON_3_9,
-            handler="create_checkout.handler",
+            handler="checkout_session.handler",
             code=_lambda.Code.from_asset("backend"),
             timeout=Duration.seconds(30),
             environment={

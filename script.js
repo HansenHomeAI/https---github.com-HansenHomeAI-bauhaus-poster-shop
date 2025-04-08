@@ -287,11 +287,13 @@ async function checkout() {
       },
       body: JSON.stringify({
         items: cart.map(item => ({
-          id: item.id,
+          name: item.name,
+          description: item.description,
+          image: item.image,
+          price: item.price,
           quantity: item.quantity
         })),
-        success_url: window.location.origin + "/success.html",
-        cancel_url: window.location.origin + "/cancel.html"
+        customer_email: "customer@example.com" // You might want to collect this from the user
       })
     })
 
