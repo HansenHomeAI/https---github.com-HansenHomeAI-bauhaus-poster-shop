@@ -5,6 +5,10 @@ import boto3
 from decimal import Decimal
 import logging
 import time
+import requests
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Set up logging
 logger = logging.getLogger()
@@ -21,14 +25,102 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 stripe.api_version = "2023-10-16"  # Use a stable API version that matches the frontend
 endpoint_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
-# Import Prodigi order functions if available
-try:
-    from prodigi_order import create_prodigi_order
-    HAS_PRODIGI_INTEGRATION = True
-    logger.info("Prodigi integration available")
-except ImportError:
-    HAS_PRODIGI_INTEGRATION = False
-    logger.warning("Prodigi order module not available - will not send orders for fulfillment directly")
+# Email configuration
+EMAIL_SENDER = os.environ.get("EMAIL_SENDER")
+NOTIFICATION_EMAIL = "hello@hansenhome.ai"
+
+def send_notification_email(order_data, payment_intent):
+    """Send an email notification about a new purchase"""
+    if not EMAIL_SENDER:
+        logger.warning("No EMAIL_SENDER configured, skipping notification")
+        return
+    
+    try:
+        # Extract order details
+        order_id = order_data.get('order_id', 'Unknown')
+        customer_email = payment_intent.get('receipt_email', 'Unknown')
+        amount = payment_intent.get('amount', 0)
+        # Convert amount from cents to dollars with proper formatting
+        amount_formatted = f"${(amount / 100):.2f}"
+        
+        # Get items if available
+        items = order_data.get('items', [])
+        items_html = ""
+        for item in items:
+            name = item.get('name', 'Unknown item')
+            qty = item.get('quantity', 1)
+            price = item.get('price', 0)
+            items_html += f"<li>{name} x {qty} - ${price}</li>"
+        
+        # Create email message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"New Order: {order_id}"
+        msg['From'] = EMAIL_SENDER
+        msg['To'] = NOTIFICATION_EMAIL
+        
+        # Create HTML version
+        html = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                .container {{ padding: 20px; }}
+                h2 {{ color: #256F8A; }}
+                .order-details {{ margin: 20px 0; }}
+                .order-total {{ font-weight: bold; margin-top: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>New Order Received!</h2>
+                <p>A new order has been placed and payment has been confirmed.</p>
+                
+                <div class="order-details">
+                    <p><strong>Order ID:</strong> {order_id}</p>
+                    <p><strong>Customer Email:</strong> {customer_email}</p>
+                    <p><strong>Total Amount:</strong> {amount_formatted}</p>
+                </div>
+                
+                <h3>Order Items:</h3>
+                <ul>
+                    {items_html}
+                </ul>
+                
+                <p class="order-total">Total: {amount_formatted}</p>
+                
+                <p>This order is being processed for fulfillment through Prodigi.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Create plain text version
+        text = f"""
+        New Order Received!
+        
+        A new order has been placed and payment has been confirmed.
+        
+        Order ID: {order_id}
+        Customer Email: {customer_email}
+        Total Amount: {amount_formatted}
+        
+        This order is being processed for fulfillment through Prodigi.
+        """
+        
+        # Attach parts
+        msg.attach(MIMEText(text, 'plain'))
+        msg.attach(MIMEText(html, 'html'))
+        
+        # Send email
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.starttls()
+            server.login(EMAIL_SENDER, os.environ.get('EMAIL_PASSWORD', ''))
+            server.send_message(msg)
+            
+        logger.info(f"Notification email sent for order {order_id}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send notification email: {str(e)}")
 
 def handler(event, context):
     logger.info("Received webhook event")
@@ -66,19 +158,10 @@ def handler(event, context):
         current_time = int(time.time())
         
         try:
-            # First, get the current order data
+            # Get the current order first
             get_response = table.get_item(Key={"order_id": order_id})
-            order = get_response.get("Item", {})
+            current_order = get_response.get("Item", {})
             
-            if not order:
-                logger.error(f"Order {order_id} not found in DynamoDB")
-                return {"statusCode": 404, "body": json.dumps({"error": f"Order {order_id} not found"})}
-            
-            # Check if order has already been processed
-            if order.get("status") == "PAYMENT_COMPLETE" or order.get("status") == "PROCESSING":
-                logger.info(f"Order {order_id} already processed. Current status: {order.get('status')}")
-                return {"statusCode": 200, "body": json.dumps({"received": True, "status": "already_processed"})}
-                
             # Update order status in DynamoDB
             update_response = table.update_item(
                 Key={"order_id": order_id},
@@ -97,76 +180,59 @@ def handler(event, context):
             # Get the updated order
             updated_order = update_response.get("Attributes", {})
             
-            # Try to create Prodigi order directly if integration is available
-            prodigi_order_id = None
-            if HAS_PRODIGI_INTEGRATION:
-                try:
-                    logger.info(f"Creating Prodigi order directly for order: {order_id}")
-                    prodigi_result = create_prodigi_order(updated_order)
-                    prodigi_order_id = prodigi_result.get("prodigi_order_id")
-                    
-                    if prodigi_order_id:
-                        # Update order with Prodigi order ID
-                        table.update_item(
-                            Key={"order_id": order_id},
-                            UpdateExpression="SET prodigi_order_id = :poi, status = :status, updated_at = :time",
-                            ExpressionAttributeValues={
-                                ":poi": prodigi_order_id,
-                                ":status": "PROCESSING",
-                                ":time": current_time
-                            }
-                        )
-                        logger.info(f"Created Prodigi order {prodigi_order_id} for order {order_id}")
-                    else:
-                        logger.error(f"Failed to create Prodigi order directly, prodigi_order_id not returned")
-                        # Fall back to Lambda invocation if direct integration fails
-                        prodigi_order_id = None
-                except Exception as e:
-                    logger.error(f"Error creating Prodigi order directly: {str(e)}")
-                    # Fall back to Lambda invocation
-                    prodigi_order_id = None
+            # Send email notification
+            send_notification_email(current_order, payment_intent)
             
-            # If direct Prodigi order creation failed or isn't available, invoke the dedicated Lambda
-            if not prodigi_order_id:
-                prodigi_lambda_name = os.environ.get("PRODIGI_ORDER_FUNCTION_NAME")
-                if prodigi_lambda_name:
-                    logger.info(f"Invoking Prodigi order Lambda for order: {order_id}")
-                    
-                    invoke_payload = {
-                        "order_id": order_id,
-                        "client_id": client_id,
-                        "job_id": job_id,
-                        "payment_intent": payment_intent,
-                        "order": updated_order
+            # Invoke order fulfillment Lambda asynchronously
+            prodigi_lambda_name = os.environ.get("PRODIGI_ORDER_FUNCTION_NAME")
+            if prodigi_lambda_name:
+                logger.info(f"Invoking Prodigi order processing for order: {order_id}")
+                
+                invoke_payload = {
+                    "order_id": order_id,
+                    "client_id": client_id,
+                    "job_id": job_id,
+                    "payment_intent": payment_intent
+                }
+                
+                lambda_client.invoke(
+                    FunctionName=prodigi_lambda_name,
+                    InvocationType="Event",  # Asynchronous invocation
+                    Payload=json.dumps(invoke_payload)
+                )
+            
+            # Try to update the client's browser by posting to our webhook-status resource
+            try:
+                public_webhook_url = os.environ.get("PUBLIC_WEBHOOK_URL")
+                if public_webhook_url and client_id:
+                    # This is used by the frontend to poll for status updates
+                    status_data = {
+                        "clientId": client_id,
+                        "orderId": order_id,
+                        "status": "PAYMENT_COMPLETE",
+                        "timestamp": current_time
                     }
                     
-                    response = lambda_client.invoke(
-                        FunctionName=prodigi_lambda_name,
-                        InvocationType="RequestResponse",  # Synchronous invocation for reliability
-                        Payload=json.dumps(invoke_payload)
+                    # Store this status update for the frontend to poll
+                    # This is necessary because we can't push directly to the browser
+                    table.put_item(
+                        Item={
+                            "status_update_id": f"{client_id}_{current_time}",
+                            "client_id": client_id,
+                            "order_id": order_id,
+                            "status": "PAYMENT_COMPLETE",
+                            "timestamp": current_time,
+                            "expires_at": current_time + (60 * 60 * 24)  # 24 hour TTL
+                        }
                     )
                     
-                    # Log the response from the Prodigi Lambda
-                    payload = json.loads(response["Payload"].read().decode())
-                    logger.info(f"Prodigi Lambda response: {payload}")
-                    
-                    if response["StatusCode"] != 200:
-                        logger.error(f"Error invoking Prodigi Lambda: {payload}")
-                else:
-                    logger.warning("No PRODIGI_ORDER_FUNCTION_NAME configured, order fulfillment delayed")
-            
-            return {
-                "statusCode": 200, 
-                "body": json.dumps({
-                    "received": True,
-                    "order_id": order_id,
-                    "prodigi_order_created": prodigi_order_id is not None
-                })
-            }
+                    logger.info(f"Stored status update for client: {client_id}")
+            except Exception as status_err:
+                logger.error(f"Error updating client status: {str(status_err)}")
+                # This is non-critical, so we continue processing
                 
         except Exception as e:
             logger.error(f"Error updating order status: {str(e)}")
             return {"statusCode": 500, "body": json.dumps({"error": f"Error processing payment: {str(e)}"})}
 
-    # For other event types, just acknowledge receipt
     return {"statusCode": 200, "body": json.dumps({"received": True})} 

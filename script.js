@@ -422,6 +422,12 @@ function showSection(sectionId) {
     const section = document.getElementById(sectionId);
     if (section) {
         section.classList.remove('hidden');
+        
+        // If showing processing section, start polling
+        if (sectionId === 'processing-section') {
+            startPaymentStatusPolling();
+        }
+        
         window.scrollTo(0, 0);
     }
 }
@@ -743,11 +749,8 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 // Log the error with job details for troubleshooting
                 console.error('Payment confirmation error:', error, 'Job:', currentCheckoutJob);
             } else {
-                // Payment successful - handled by Stripe webhook
-                console.log('Payment confirmed by Stripe. Order processing will be handled by webhooks.');
-                
-                // Get order ID for status polling
-                const orderId = currentCheckoutJob?.orderId;
+                // Payment processed by Stripe, now waiting for webhook confirmation
+                console.log('Payment processed for job:', currentCheckoutJob);
                 
                 // Clear checkout data but keep client ID
                 localStorage.removeItem('cartItems');
@@ -756,33 +759,10 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 // Clear cart and update UI
                 updateCartCount();
                 
-                // Show a loading message on the success page
-                const successSection = document.getElementById('success-section');
-                if (successSection) {
-                    const messageContainer = successSection.querySelector('.message-container');
-                    if (messageContainer) {
-                        messageContainer.innerHTML = `
-                            <h2>Payment Processing</h2>
-                            <p>Your payment is being processed. You will receive an email confirmation once the order is complete.</p>
-                            <div class="loading-spinner" style="margin: 20px auto;"></div>
-                            <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
-                        `;
-                    }
-                }
+                // Show processing section instead of immediate success
+                showSection('processing-section');
                 
-                // Show success section
-                showSection('success-section');
-                
-                // Start polling for order status if we have an order ID
-                if (orderId) {
-                    console.log('Starting to poll for order status:', orderId);
-                    pollOrderStatus(orderId);
-                } else {
-                    console.warn('No order ID available for status polling');
-                }
-                
-                // Reset current checkout job after starting the polling
-                currentCheckoutJob = null;
+                // We'll let the webhook handle the actual order confirmation
             }
         });
 
@@ -941,77 +921,125 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Add a function to check order status
-async function checkOrderStatus(orderId) {
-  try {
-    const response = await fetch(`${API_URL}/order-status?orderId=${orderId}`);
-    if (!response.ok) {
-      console.error('Error fetching order status:', response.status);
-      return null;
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to check order status:', error);
-    return null;
-  }
-}
-
-// Poll for order status updates
-function pollOrderStatus(orderId, maxAttempts = 10) {
-  const successSection = document.getElementById('success-section');
-  const messageContainer = successSection.querySelector('.message-container');
-  
-  let attempts = 0;
-  const pollInterval = 5000; // 5 seconds between checks
-  
-  const checkStatus = async () => {
-    if (attempts >= maxAttempts) {
-      // Stop polling after max attempts but keep the processing screen
-      console.log('Reached maximum polling attempts');
-      return;
+// Poll for payment status updates when on the processing page
+function startPaymentStatusPolling() {
+    // Get the client ID and current order from localStorage
+    const clientId = getClientId();
+    const currentOrderInfo = JSON.parse(sessionStorage.getItem('currentCheckout') || '{}');
+    const orderId = currentOrderInfo.orderId;
+    
+    if (!clientId) {
+        console.error('Cannot poll for status: No client ID available');
+        return;
     }
     
-    attempts++;
-    const orderStatus = await checkOrderStatus(orderId);
+    console.log(`Starting payment status polling for client ${clientId}, order ${orderId}`);
     
-    if (!orderStatus) {
-      // API error, try again
-      setTimeout(checkStatus, pollInterval);
-      return;
+    // Set polling interval
+    const pollingInterval = 5000; // 5 seconds
+    const maxPolls = 60; // Stop after 5 minutes (60 * 5 seconds)
+    let pollCount = 0;
+    
+    // Show a timer on the page
+    const processingNote = document.querySelector('.processing-note');
+    if (processingNote) {
+        processingNote.innerHTML += `<br><span class="polling-timer">Checking payment status... (0:00)</span>`;
     }
     
-    const status = orderStatus.status;
-    console.log(`Order status check (${attempts}/${maxAttempts}):`, status);
+    // Start timer display
+    let secondsElapsed = 0;
+    const timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const minutes = Math.floor(secondsElapsed / 60);
+        const seconds = secondsElapsed % 60;
+        const timerDisplay = document.querySelector('.polling-timer');
+        if (timerDisplay) {
+            timerDisplay.textContent = `Checking payment status... (${minutes}:${seconds < 10 ? '0' : ''}${seconds})`;
+        }
+    }, 1000);
     
-    if (status === 'PAYMENT_COMPLETE' || status === 'PROCESSING' || status === 'FULFILLED') {
-      // Payment confirmed, update the success page
-      if (messageContainer) {
-        messageContainer.innerHTML = `
-          <h2>Payment Successful!</h2>
-          <p>Thank you for your purchase. ${status === 'PROCESSING' || status === 'FULFILLED' ? 'Your order is being processed and prepared for shipping.' : 'Your order is being prepared.'}</p>
-          <p>You will receive an email confirmation shortly.</p>
-          <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
-        `;
-      }
-    } else if (status === 'PENDING' || status === 'CREATED') {
-      // Still processing, check again
-      setTimeout(checkStatus, pollInterval);
-    } else if (status === 'FAILED' || status === 'EXPIRED') {
-      // Payment failed
-      if (messageContainer) {
-        messageContainer.innerHTML = `
-          <h2>Payment Failed</h2>
-          <p>There was an issue processing your payment. Please try again.</p>
-          <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
-        `;
-      }
-    } else {
-      // Unknown status, try again
-      setTimeout(checkStatus, pollInterval);
-    }
-  };
-  
-  // Start polling
-  setTimeout(checkStatus, 2000); // First check after 2 seconds
+    // Function to check payment status
+    const checkPaymentStatus = async () => {
+        try {
+            // Increment poll count
+            pollCount++;
+            
+            // Build query params
+            let queryParams = `clientId=${encodeURIComponent(clientId)}`;
+            if (orderId) {
+                queryParams += `&orderId=${encodeURIComponent(orderId)}`;
+            }
+            
+            // Call payment status endpoint
+            const response = await fetch(`${API_URL}/payment-status?${queryParams}`);
+            
+            if (!response.ok) {
+                console.error('Payment status check failed:', response.status);
+                // Continue polling despite error
+                return false;
+            }
+            
+            const data = await response.json();
+            console.log('Payment status response:', data);
+            
+            // If payment is confirmed
+            if (data.success && (data.status === 'PAYMENT_COMPLETE' || data.status === 'PROCESSING')) {
+                console.log('Payment confirmed by webhook!');
+                
+                // Clear timer
+                clearInterval(timerInterval);
+                
+                // Show success page
+                showSection('success-section');
+                
+                // Clear currentCheckoutJob
+                currentCheckoutJob = null;
+                
+                return true; // Stop polling
+            }
+            
+            // Check if we've reached max polls
+            if (pollCount >= maxPolls) {
+                console.log('Reached maximum polling attempts');
+                
+                // Clear timer
+                clearInterval(timerInterval);
+                
+                // Update processing page to show timeout message
+                const processingContainer = document.querySelector('.message-container');
+                if (processingContainer) {
+                    processingContainer.innerHTML = `
+                        <h2>Payment Processing</h2>
+                        <p>Your payment is being processed. You can safely close this window.</p>
+                        <p>You will receive a confirmation email once the payment is complete.</p>
+                        <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
+                    `;
+                }
+                
+                return true; // Stop polling
+            }
+            
+            return false; // Continue polling
+        } catch (error) {
+            console.error('Error checking payment status:', error);
+            return false; // Continue polling despite error
+        }
+    };
+    
+    // Start polling
+    const poll = async () => {
+        const shouldStop = await checkPaymentStatus();
+        
+        if (!shouldStop && document.getElementById('processing-section') && !document.getElementById('processing-section').classList.contains('hidden')) {
+            // Only continue polling if still on processing page and not done
+            setTimeout(poll, pollingInterval);
+        } else {
+            // Clear timer if we've navigated away or finished polling
+            clearInterval(timerInterval);
+        }
+    };
+    
+    // Start first poll immediately
+    poll();
 }
 

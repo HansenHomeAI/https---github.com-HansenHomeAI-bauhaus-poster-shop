@@ -1255,3 +1255,20 @@ footer {
   height: 22px;
   stroke-width: 2;
 }
+
+/* Processing section styles */
+.processing-spinner {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--text-color);
+  animation: spin 1s linear infinite;
+  margin: 24px auto;
+}
+
+.processing-note {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 16px;
+}
