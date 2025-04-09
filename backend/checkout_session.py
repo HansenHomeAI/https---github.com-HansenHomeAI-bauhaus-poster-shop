@@ -9,7 +9,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Initialize Stripe with your secret key
-stripe_secret_key = os.environ.get("STRIPE_SECRET_KEY", "DEFAULT_NOT_SET")
+stripe_secret_key = os.environ.get("STRIPE_TEST_SECRET_KEY", "DEFAULT_NOT_SET")
 # Log the first 8 characters of the secret key (safe to log part of it)
 logger.info(f"Using Stripe secret key: {stripe_secret_key[:8]}...")
 
