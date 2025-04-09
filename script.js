@@ -460,60 +460,15 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     // Create and show the loading animation
     const loadingAnimation = document.createElement('div');
     loadingAnimation.className = 'checkout-loading-animation';
+
+    // Create a single spinner circle
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+
+    // Add the spinner to the loading animation container
+    loadingAnimation.appendChild(spinner);
+
     document.body.appendChild(loadingAnimation);
-    
-    // Create circles with brand colors
-    const brandColors = ['#E26E1D', '#256F8A', '#BA3B1A', '#EBB640', '#1E1E1E'];
-    const circleCount = 40; // Number of circles
-    
-    for (let i = 0; i < circleCount; i++) {
-        const circle = document.createElement('div');
-        circle.className = 'loading-circle';
-        
-        // Random size between 20px and 100px
-        const size = Math.floor(Math.random() * 80) + 20;
-        circle.style.width = `${size}px`;
-        circle.style.height = `${size}px`;
-        
-        // Random position on edge of screen
-        const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
-        
-        // Random position along that edge
-        const position = Math.random() * 100;
-        
-        switch(edge) {
-            case 0: // top
-                circle.style.top = '-100px';
-                circle.style.left = `${position}vw`;
-                break;
-            case 1: // right
-                circle.style.top = `${position}vh`;
-                circle.style.right = '-100px';
-                break;
-            case 2: // bottom
-                circle.style.bottom = '-100px';
-                circle.style.left = `${position}vw`;
-                break;
-            case 3: // left
-                circle.style.top = `${position}vh`;
-                circle.style.left = '-100px';
-                break;
-        }
-        
-        // Random color from brand colors
-        const colorIndex = Math.floor(Math.random() * brandColors.length);
-        circle.style.backgroundColor = brandColors[colorIndex];
-        
-        // Random animation duration between 1.5s and 2.5s
-        const duration = 1.5 + Math.random();
-        
-        // Set animation properties
-        circle.style.animationDuration = `${duration}s`;
-        circle.style.animationDelay = `${Math.random() * 0.8}s`;
-        
-        // Add to the loading animation container
-        loadingAnimation.appendChild(circle);
-    }
 
     try {
         // Added log before using stripe
