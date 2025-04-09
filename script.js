@@ -54,8 +54,10 @@ let stripe
 try {
   // Initialize Stripe with your actual TEST publishable key
   stripe = Stripe('pk_test_51PbnbRRut3hoXCRuvAFtiAxWeHMKZM6fp3E5kHmdUWZM0NCB22aq35S0cS74vmDoPwOq7BLbUmNqUZslSuhJM4bH00aXzK4Rr7'); // Using your provided pk_test_... key
+  console.log('[DEBUG] Stripe initialized:', stripe); // Added log
 } catch (error) {
   console.error("Failed to initialize Stripe:", error)
+  console.error('[DEBUG] Stripe initialization FAILED'); // Added log
 }
 
 // DOM Elements
@@ -398,6 +400,9 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     }
 
     try {
+        // Added log before using stripe
+        console.log('[DEBUG] Value of stripe before stripe.elements call:', stripe);
+
         const response = await fetch(`${API_URL}/checkout`, {
             method: 'POST',
             headers: {
