@@ -262,14 +262,36 @@ function updateCart() {
     const emailInput = emailContainer.querySelector('#cart-email');
     const validationMessage = emailContainer.querySelector('.email-validation-message');
     
+    // Initially hide validation message
+    validationMessage.style.opacity = '0';
+    
+    // Add a variable to store the timeout
+    let validationTimeout;
+    
     emailInput.addEventListener('input', () => {
-      const isValid = emailInput.checkValidity();
-      checkoutBtn.disabled = !isValid;
-      validationMessage.style.opacity = isValid ? '0' : '1';
-      emailContainer.classList.toggle('invalid', !isValid);
+      // Clear any existing timeout
+      if (validationTimeout) {
+        clearTimeout(validationTimeout);
+      }
       
+      const isValid = emailInput.checkValidity();
+      
+      // Always enable/disable the button immediately
+      checkoutBtn.disabled = !isValid;
+      
+      // If valid, hide message immediately and store email
       if (isValid) {
+        validationMessage.style.opacity = '0';
+        emailContainer.classList.remove('invalid');
         localStorage.setItem('customerEmail', emailInput.value);
+      } else {
+        // If invalid, set a timeout to show the message after 1.75 seconds
+        validationTimeout = setTimeout(() => {
+          if (!emailInput.checkValidity()) {
+            validationMessage.style.opacity = '1';
+            emailContainer.classList.add('invalid');
+          }
+        }, 1750); // 1.75 seconds
       }
     });
     
@@ -434,6 +456,64 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     
     // Close cart sidebar
     closeCart();
+    
+    // Create and show the loading animation
+    const loadingAnimation = document.createElement('div');
+    loadingAnimation.className = 'checkout-loading-animation';
+    document.body.appendChild(loadingAnimation);
+    
+    // Create circles with brand colors
+    const brandColors = ['#E26E1D', '#256F8A', '#BA3B1A', '#EBB640', '#1E1E1E'];
+    const circleCount = 40; // Number of circles
+    
+    for (let i = 0; i < circleCount; i++) {
+        const circle = document.createElement('div');
+        circle.className = 'loading-circle';
+        
+        // Random size between 20px and 100px
+        const size = Math.floor(Math.random() * 80) + 20;
+        circle.style.width = `${size}px`;
+        circle.style.height = `${size}px`;
+        
+        // Random position on edge of screen
+        const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        
+        // Random position along that edge
+        const position = Math.random() * 100;
+        
+        switch(edge) {
+            case 0: // top
+                circle.style.top = '-100px';
+                circle.style.left = `${position}vw`;
+                break;
+            case 1: // right
+                circle.style.top = `${position}vh`;
+                circle.style.right = '-100px';
+                break;
+            case 2: // bottom
+                circle.style.bottom = '-100px';
+                circle.style.left = `${position}vw`;
+                break;
+            case 3: // left
+                circle.style.top = `${position}vh`;
+                circle.style.left = '-100px';
+                break;
+        }
+        
+        // Random color from brand colors
+        const colorIndex = Math.floor(Math.random() * brandColors.length);
+        circle.style.backgroundColor = brandColors[colorIndex];
+        
+        // Random animation duration between 1.5s and 2.5s
+        const duration = 1.5 + Math.random();
+        
+        // Set animation properties
+        circle.style.animationDuration = `${duration}s`;
+        circle.style.animationDelay = `${Math.random() * 0.8}s`;
+        
+        // Add to the loading animation container
+        loadingAnimation.appendChild(circle);
+    }
 
     try {
         // Added log before using stripe
@@ -492,6 +572,12 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         // Basic format validation for client secret (should start with 'pi_' for PaymentIntents)
         if (!clientSecret.startsWith('pi_')) {
             console.error('Invalid client secret format:', clientSecret);
+            
+            // Remove loading animation
+            loadingAnimation.classList.add('dispersing');
+            setTimeout(() => {
+                loadingAnimation.remove();
+            }, 1000);
             
             // Display error on the page
             const checkoutSection = document.getElementById('checkout-section');
@@ -601,10 +687,25 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             // Add detailed logging for element events
             paymentElement.on('ready', function(event) {
                 console.log('[DEBUG] Payment element ready:', event);
+                
+                // Add a transition class to the loading animation
+                loadingAnimation.classList.add('dispersing');
+                
+                // Remove the loading animation after the dispersion animation completes
+                setTimeout(() => {
+                    loadingAnimation.remove();
+                }, 1000); // 1 second for the dispersion animation
             });
             
             paymentElement.on('loaderror', (event) => {
                 console.error('Payment element loading error:', event);
+                
+                // Remove loading animation
+                loadingAnimation.classList.add('dispersing');
+                setTimeout(() => {
+                    loadingAnimation.remove();
+                }, 1000);
+                
                 const messageContainer = document.querySelector("#payment-message");
                 messageContainer.textContent = "Failed to load payment form: " + (event.error?.message || "Unknown error");
                 messageContainer.classList.remove("hidden");
@@ -628,6 +729,12 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                     paymentElement.mount("#payment-element");
                     console.log('[DEBUG] Payment element mounted successfully');
                 } catch (mountError) {
+                    // Remove loading animation
+                    loadingAnimation.classList.add('dispersing');
+                    setTimeout(() => {
+                        loadingAnimation.remove();
+                    }, 1000);
+                    
                     console.error('Error mounting payment element:', mountError);
                     const messageContainer = document.querySelector("#payment-message");
                     messageContainer.textContent = "Failed to display payment form: " + mountError.message;
@@ -635,6 +742,12 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 }
             }, 100);
         } catch (error) {
+            // Remove loading animation
+            loadingAnimation.classList.add('dispersing');
+            setTimeout(() => {
+                loadingAnimation.remove();
+            }, 1000);
+            
             console.error('Error initializing Stripe Elements:', error);
             const messageContainer = document.querySelector("#payment-message");
             messageContainer.textContent = "Failed to initialize payment. Please refresh and try again.";
