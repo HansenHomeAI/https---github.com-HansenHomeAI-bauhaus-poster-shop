@@ -27,7 +27,7 @@ class BackendStack(Stack):
             removal_policy=RemovalPolicy.DESTROY
         )
 
-        # Order Cleanup Lambda (runs hourly)
+        # Order Cleanup Lambda (runs weekly)
         order_cleanup_lambda = _lambda.Function(
             self, "OrderCleanupLambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
@@ -39,11 +39,11 @@ class BackendStack(Stack):
             timeout=Duration.seconds(60)  # Give it enough time to process all expired orders
         )
 
-        # Add EventBridge rule to trigger the cleanup function hourly
+        # Add EventBridge rule to trigger the cleanup function weekly
         cleanup_rule = aws_events.Rule(
-            self, "HourlyCleanupRule",
-            schedule=aws_events.Schedule.rate(Duration.hours(1)),
-            description="Triggers the order cleanup function hourly"
+            self, "WeeklyCleanupRule",
+            schedule=aws_events.Schedule.rate(Duration.days(7)),
+            description="Triggers the order cleanup function weekly"
         )
         cleanup_rule.add_target(aws_events_targets.LambdaFunction(order_cleanup_lambda))
 
