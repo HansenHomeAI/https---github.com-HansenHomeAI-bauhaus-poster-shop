@@ -416,6 +416,9 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
 
         const { clientSecret } = await response.json();
 
+        // Log the clientSecret to verify it's correctly retrieved
+        console.log('Client Secret:', clientSecret);
+
         // Display order summary in checkout page
         const orderSummarySection = document.createElement('div');
         orderSummarySection.classList.add('order-summary-section');
@@ -471,13 +474,19 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             paymentMethodOrder: ['card', 'apple_pay', 'google_pay']
         };
 
-        const elements = stripe.elements({
-            appearance,
-            clientSecret
-        });
+        // Initialize Stripe Elements with error handling
+        try {
+            const elements = stripe.elements({
+                appearance,
+                clientSecret
+            });
 
-        const paymentElement = elements.create("payment", paymentElementOptions);
-        paymentElement.mount("#payment-element");
+            const paymentElement = elements.create("payment", paymentElementOptions);
+            paymentElement.mount("#payment-element");
+        } catch (error) {
+            console.error('Error initializing Stripe Elements:', error);
+            alert('Failed to load payment options. Please try again later.');
+        }
 
         // Show checkout section
         showSection('checkout-section');
