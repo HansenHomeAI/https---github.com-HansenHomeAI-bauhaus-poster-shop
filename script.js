@@ -415,6 +415,9 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
 
     // Save cart items to localStorage for processing
     localStorage.setItem('cartItems', JSON.stringify(cart));
+    
+    // Close cart sidebar
+    closeCart();
 
     try {
         // Added log before using stripe
@@ -595,9 +598,6 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             return; // Don't proceed further
         }
 
-        // Show checkout section (moved this above to ensure it's visible before mounting)
-        // showSection('checkout-section');
-
         // Handle form submission
         const form = document.querySelector("#payment-form");
         form.addEventListener("submit", async (e) => {
@@ -638,9 +638,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             }
         });
 
-        // Close cart sidebar
-        document.getElementById('cart-sidebar').classList.remove('active');
-        document.getElementById('overlay').classList.remove('active');
+        // Cart sidebar already closed at the beginning of checkout
     } catch (error) {
         console.error('Error:', error);
         alert('Error creating checkout session: ' + error.message);
