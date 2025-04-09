@@ -982,14 +982,16 @@ function startPaymentStatusPolling() {
                 queryParams += `&orderId=${encodeURIComponent(orderId)}`;
             }
             
-            // Call payment status endpoint
+            // Call payment status endpoint with additional headers to help with CORS
             const response = await fetch(`${API_URL}/payment-status?${queryParams}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Origin': window.location.origin
                 },
-                mode: 'cors' // Explicitly request CORS mode
+                mode: 'cors', // Explicitly request CORS mode
+                credentials: 'omit' // Don't send cookies to avoid CORS issues
             });
             
             if (!response.ok) {
@@ -1000,8 +1002,8 @@ function startPaymentStatusPolling() {
                     corsErrorCount++;
                     console.log(`CORS error count: ${corsErrorCount}`);
                     
-                    // After 3 CORS errors, show a timeout message
-                    if (corsErrorCount >= 3) {
+                    // After 2 CORS errors, show a timeout message
+                    if (corsErrorCount >= 2) {
                         displayTimeoutMessage();
                         return true; // Stop polling
                     }
@@ -1015,7 +1017,7 @@ function startPaymentStatusPolling() {
             console.log('Payment status response:', data);
             
             // If payment is confirmed
-            if (data.success && (data.status === 'PAYMENT_COMPLETE' || data.status === 'PROCESSING')) {
+            if (data.success && (data.status === 'PAYMENT_COMPLETE' || data.status === 'PROCESSING' || data.status === 'PAID')) {
                 console.log('Payment confirmed by webhook!');
                 
                 // Clear timer
@@ -1045,8 +1047,8 @@ function startPaymentStatusPolling() {
                 corsErrorCount++;
                 console.log(`CORS error count: ${corsErrorCount}`);
                 
-                // After 3 CORS errors, show a timeout message
-                if (corsErrorCount >= 3) {
+                // After 2 CORS errors, show a timeout message
+                if (corsErrorCount >= 2) {
                     displayTimeoutMessage();
                     return true; // Stop polling
                 }
@@ -1089,9 +1091,9 @@ function startPaymentStatusPolling() {
         }
     };
     
-    // Fallback success transition after 15 seconds even if no webhook confirmation
+    // Fallback success transition after 10 seconds even if no webhook confirmation
     setTimeout(() => {
-        // If we're still on the processing page after 15 seconds, assume success
+        // If we're still on the processing page after 10 seconds, assume success
         if (document.getElementById('processing-section') && !document.getElementById('processing-section').classList.contains('hidden')) {
             // Clear existing timer
             clearInterval(timerInterval);
@@ -1099,7 +1101,7 @@ function startPaymentStatusPolling() {
             // Show success section
             showSection('success-section');
         }
-    }, 15000); // 15 seconds timeout
+    }, 10000); // 10 seconds timeout
     
     // Start first poll immediately
     poll();

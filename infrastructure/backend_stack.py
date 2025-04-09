@@ -191,6 +191,31 @@ class BackendStack(Stack):
             }]
         )
         
+        # Add explicit OPTIONS method for checkout endpoint
+        checkout.add_method(
+            "OPTIONS",
+            apigw.MockIntegration(
+                integration_responses=[{
+                    'statusCode': '200',
+                    'responseParameters': {
+                        'method.response.header.Access-Control-Allow-Origin': "'*'",
+                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'",
+                        'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'"
+                    }
+                }],
+                passthrough_behavior=apigw.PassthroughBehavior.NEVER,
+                request_templates={"application/json": '{"statusCode": 200}'}
+            ),
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True
+                }
+            }]
+        )
+        
         checkout.add_method(
             "POST",
             checkout_integration,
@@ -273,6 +298,31 @@ class BackendStack(Stack):
             }]
         )
         
+        # Add explicit OPTIONS method for payment-success endpoint
+        payment_success.add_method(
+            "OPTIONS",
+            apigw.MockIntegration(
+                integration_responses=[{
+                    'statusCode': '200',
+                    'responseParameters': {
+                        'method.response.header.Access-Control-Allow-Origin': "'*'",
+                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'",
+                        'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'"
+                    }
+                }],
+                passthrough_behavior=apigw.PassthroughBehavior.NEVER,
+                request_templates={"application/json": '{"statusCode": 200}'}
+            ),
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True
+                }
+            }]
+        )
+        
         payment_success.add_method(
             "POST",
             payment_success_integration,
@@ -308,6 +358,31 @@ class BackendStack(Stack):
                     'method.response.header.Access-Control-Allow-Origin': "'*'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET'"
+                }
+            }]
+        )
+        
+        # Add explicit OPTIONS method for payment-status endpoint
+        payment_status.add_method(
+            "OPTIONS",
+            apigw.MockIntegration(
+                integration_responses=[{
+                    'statusCode': '200',
+                    'responseParameters': {
+                        'method.response.header.Access-Control-Allow-Origin': "'*'",
+                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'",
+                        'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'"
+                    }
+                }],
+                passthrough_behavior=apigw.PassthroughBehavior.NEVER,
+                request_templates={"application/json": '{"statusCode": 200}'}
+            ),
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True
                 }
             }]
         )

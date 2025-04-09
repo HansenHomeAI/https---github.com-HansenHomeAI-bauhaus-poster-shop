@@ -33,6 +33,20 @@ def handler(event, context):
     """
     logger.info(f"Received payment success event: {event}")
     
+    # Handle preflight OPTIONS request for CORS
+    if event.get('httpMethod') == 'OPTIONS':
+        logger.info("Handling OPTIONS preflight request")
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With',
+                'Access-Control-Allow-Methods': 'POST,OPTIONS',
+                'Access-Control-Max-Age': '86400'  # 24 hours
+            },
+            'body': ''
+        }
+    
     try:
         # Parse the request body
         if 'body' in event:
