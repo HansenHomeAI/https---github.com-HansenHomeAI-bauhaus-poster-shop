@@ -55,7 +55,6 @@ try {
   // Initialize Stripe with your actual TEST publishable key and stable API version
   stripe = Stripe('pk_test_51PbnbRRut3hoXCRuvAFtiAxWeHMKZM6fp3E5kHmdUWZM0NCB22aq35S0cS74vmDoPwOq7BLbUmNqUZslSuhJM4bH00aXzK4Rr7', {
     apiVersion: '2023-10-16', // Using stable API version
-    stripeAccount: null, // Ensure no connected account is being used
     locale: 'en' // Specify locale
   });
   console.log('[DEBUG] Stripe initialized:', stripe); // Added log
