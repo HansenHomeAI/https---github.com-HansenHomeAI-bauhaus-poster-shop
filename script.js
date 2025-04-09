@@ -365,6 +365,7 @@ contactLink.addEventListener("click", (e) => {
 // Event listeners
 window.addEventListener("DOMContentLoaded", () => {
   displayProducts()
+  showMainContent()
 })
 
 window.addEventListener("scroll", () => {
@@ -412,6 +413,7 @@ function showMainContent() {
     document.querySelectorAll('main > section').forEach(section => {
         section.style.display = 'block';
     });
+    
     window.scrollTo(0, 0);
 }
 
@@ -423,26 +425,6 @@ function showSection(sectionId) {
         window.scrollTo(0, 0);
     }
 }
-
-// Add function to generate a client ID if it doesn't exist
-function getClientId() {
-    // Try to get existing client ID from localStorage
-    let clientId = localStorage.getItem('clientId');
-    
-    // If no client ID exists, generate a new one
-    if (!clientId) {
-        // Generate a UUID-like identifier
-        clientId = 'client_' + Math.random().toString(36).substring(2, 15) + 
-                   Math.random().toString(36).substring(2, 15);
-        // Store it for future use
-        localStorage.setItem('clientId', clientId);
-    }
-    
-    return clientId;
-}
-
-// Track the current checkout job
-let currentCheckoutJob = null;
 
 // Update checkout button click handler
 document.getElementById('checkout-btn').addEventListener('click', async () => {
@@ -456,6 +438,9 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     
     // Close cart sidebar
     closeCart();
+    
+    // Show checkout section
+    showSection('checkout-section');
     
     // Create and show the loading animation
     const loadingAnimation = document.createElement('div');
@@ -782,9 +767,6 @@ function setLoading(isLoading) {
     }
 }
 
-// Initialize with main content visible
-showMainContent();
-
 // Function to test Stripe key match
 async function testStripeKeyMatch() {
     try {
@@ -833,28 +815,87 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// Event listeners for navigation links that work everywhere including checkout page
+// Add function to generate a client ID if it doesn't exist
+function getClientId() {
+    // Try to get existing client ID from localStorage
+    let clientId = localStorage.getItem('clientId');
+    
+    // If no client ID exists, generate a new one
+    if (!clientId) {
+        // Generate a UUID-like identifier
+        clientId = 'client_' + Math.random().toString(36).substring(2, 15) + 
+                   Math.random().toString(36).substring(2, 15);
+        // Store it for future use
+        localStorage.setItem('clientId', clientId);
+    }
+    
+    return clientId;
+}
+
+// Track the current checkout job
+let currentCheckoutJob = null;
+
+// Make footer links work from any page
 document.addEventListener('DOMContentLoaded', () => {
-  const navLinks = document.querySelectorAll('.nav-links a');
+  // For all navigation links (including footer links)
+  const allNavLinks = document.querySelectorAll('nav a, footer a');
   
-  navLinks.forEach(link => {
+  allNavLinks.forEach(link => {
+    // Skip links with external URLs or email links
+    if (link.getAttribute('href') && 
+        (link.getAttribute('href').startsWith('http') || 
+         link.getAttribute('href').startsWith('mailto:') ||
+         link.getAttribute('href') === '#feedback-btn')) {
+      return;
+    }
+    
     link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetId = link.getAttribute('href').substring(1);
+      const href = link.getAttribute('href');
       
-      // If we're on checkout page or other special pages, first go back to main content
-      if (document.querySelector('.page-section:not(.hidden)')) {
-        showMainContent();
-      }
+      // Skip if no href
+      if (!href) return;
       
-      // Then scroll to the target section
-      setTimeout(() => {
-        const targetSection = document.getElementById(targetId);
-        if (targetSection) {
-          targetSection.scrollIntoView({ behavior: 'smooth' });
+      // If it's a page anchor
+      if (href.startsWith('#')) {
+        e.preventDefault();
+        const targetId = href.substring(1);
+        
+        // First return to main content if we're on a special page
+        if (document.querySelector('.page-section:not(.hidden)')) {
+          showMainContent();
         }
-      }, 100);
+        
+        // Then scroll to the section
+        setTimeout(() => {
+          const targetSection = document.getElementById(targetId);
+          if (targetSection) {
+            targetSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      }
     });
   });
+  
+  // Add event listener for checkout back link
+  const checkoutBackLink = document.getElementById('checkout-back-link');
+  if (checkoutBackLink) {
+    checkoutBackLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      // Remove loading animation if present
+      const loadingAnimation = document.querySelector('.checkout-loading-animation');
+      if (loadingAnimation) {
+        loadingAnimation.remove();
+      }
+      
+      // Clear checkout state
+      const paymentElement = document.getElementById('payment-element');
+      if (paymentElement) {
+        paymentElement.innerHTML = '';
+      }
+      
+      showMainContent();
+    });
+  }
 });
 
