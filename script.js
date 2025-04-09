@@ -514,6 +514,10 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         // Make a copy of the current cart state for order summary
         const currentCartItems = [...cart];
         
+        // Remove any existing order summaries
+        const existingSummaries = document.querySelectorAll('.order-summary-section');
+        existingSummaries.forEach(summary => summary.remove());
+        
         // Display order summary in checkout page
         const orderSummarySection = document.createElement('div');
         orderSummarySection.classList.add('order-summary-section');
