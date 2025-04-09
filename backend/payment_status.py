@@ -27,9 +27,10 @@ def handler(event, context):
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Origin,Accept',
+                'Access-Control-Allow-Headers': '*',
                 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH',
-                'Access-Control-Max-Age': '86400'  # 24 hours
+                'Access-Control-Max-Age': '86400',  # 24 hours
+                'Content-Type': 'application/json'
             },
             'body': '{}'
         }

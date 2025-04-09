@@ -4,6 +4,7 @@ import requests
 import logging
 import boto3
 import time
+import traceback
 
 # Configure logging
 logger = logging.getLogger()
@@ -18,7 +19,8 @@ def handler(event, context):
     """
     Creates a print order with Prodigi after payment is confirmed
     """
-    logger.info(f"Received Prodigi order request: {event}")
+    logger.info(f"Received Prodigi order request: {json.dumps(event, default=str)}")
+    logger.info(f"Using orders table: {orders_table_name}")
     
     # Extract order details from the event
     order_id = event.get("order_id")
@@ -42,6 +44,7 @@ def handler(event, context):
     
     # Get the order from DynamoDB to get item details
     try:
+        logger.info(f"Attempting to retrieve order {order_id} from DynamoDB table {orders_table_name}")
         response = table.get_item(Key={"order_id": order_id})
         order = response.get("Item")
         
@@ -52,8 +55,18 @@ def handler(event, context):
                 "body": json.dumps({"error": f"Order {order_id} not found"})
             }
             
+        logger.info(f"Retrieved order from DynamoDB: {json.dumps(order, default=str)}")
+            
         # Extract order items
         items = order.get("items", [])
+        if isinstance(items, str):
+            try:
+                items = json.loads(items)
+                logger.info(f"Parsed items from JSON string: {json.dumps(items, default=str)}")
+            except Exception as e:
+                logger.error(f"Error parsing items JSON: {str(e)}")
+                items = []
+                
         if not items:
             logger.error(f"No items found in order {order_id}")
             return {
@@ -107,13 +120,17 @@ def handler(event, context):
         }
         prodigi_url = "https://api.prodigi.com/v4.0/orders"
         
-        logger.info(f"Sending order to Prodigi: {json.dumps(prodigi_payload)}")
+        logger.info(f"Sending order to Prodigi with API key: {prodigi_api_key[:4]}*****")
+        logger.info(f"Prodigi payload: {json.dumps(prodigi_payload, default=str)}")
         
         response = requests.post(prodigi_url, headers=headers, json=prodigi_payload)
         
+        logger.info(f"Prodigi API response status: {response.status_code}")
+        logger.info(f"Prodigi API response body: {response.text}")
+        
         if response.status_code in [200, 201, 202]:
             order_response = response.json()
-            logger.info(f"Prodigi order created: {order_response}")
+            logger.info(f"Prodigi order created: {json.dumps(order_response, default=str)}")
             
             # Update the order in DynamoDB with Prodigi order ID
             prodigi_order_id = order_response.get("id")
@@ -131,6 +148,7 @@ def handler(event, context):
                 )
                 
                 logger.info(f"Updated order {order_id} with Prodigi order ID {prodigi_order_id}")
+                logger.info(f"Updated order record: {json.dumps(update_response.get('Attributes', {}), default=str)}")
             
             return {
                 "statusCode": 200,
@@ -166,6 +184,7 @@ def handler(event, context):
     except Exception as e:
         error_message = f"Error creating Prodigi order: {str(e)}"
         logger.error(error_message)
+        logger.error(traceback.format_exc())
         
         # Try to update the order with error status
         try:

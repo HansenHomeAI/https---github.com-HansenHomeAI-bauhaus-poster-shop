@@ -81,7 +81,8 @@ class BackendStack(Stack):
             ),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
-                "PRODIGI_API_KEY": self.node.try_get_context('prodigi_sandbox_api_key')
+                "PRODIGI_API_KEY": self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
+                "LOG_LEVEL": "DEBUG"  # Set to DEBUG for maximum logging
             },
             timeout=Duration.seconds(30)  # Give it enough time to process the API call
         )
@@ -170,9 +171,8 @@ class BackendStack(Stack):
             default_cors_preflight_options=apigw.CorsOptions(
                 allow_origins=["*"],
                 allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH", "HEAD"],
-                allow_headers=["Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key", 
-                              "X-Amz-Security-Token", "X-Requested-With", "Access-Control-Allow-Headers",
-                              "Access-Control-Allow-Origin", "Access-Control-Allow-Methods"],
+                allow_headers=["*"],  # Use wildcard to allow all headers
+                status_code=200,  # Use 200 status code instead of default 204
                 allow_credentials=False,
                 max_age=Duration.days(1)
             )
