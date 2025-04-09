@@ -6,7 +6,9 @@ from aws_cdk import (
     aws_apigateway as apigw,
     aws_dynamodb as dynamodb,
     aws_iam as iam,
-    Duration
+    Duration,
+    aws_events,
+    aws_events_targets
 )
 from constructs import Construct
 
@@ -24,6 +26,29 @@ class BackendStack(Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             removal_policy=RemovalPolicy.DESTROY
         )
+
+        # Order Cleanup Lambda (runs hourly)
+        order_cleanup_lambda = _lambda.Function(
+            self, "OrderCleanupLambda",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            handler="order_cleanup.handler",
+            code=_lambda.Code.from_asset("backend"),
+            environment={
+                "ORDERS_TABLE": orders_table.table_name,
+            },
+            timeout=Duration.seconds(60)  # Give it enough time to process all expired orders
+        )
+
+        # Add EventBridge rule to trigger the cleanup function hourly
+        cleanup_rule = aws_events.Rule(
+            self, "HourlyCleanupRule",
+            schedule=aws_events.Schedule.rate(Duration.hours(1)),
+            description="Triggers the order cleanup function hourly"
+        )
+        cleanup_rule.add_target(aws_events_targets.LambdaFunction(order_cleanup_lambda))
+
+        # Grant permissions to the cleanup Lambda
+        orders_table.grant_read_write_data(order_cleanup_lambda)
 
         # Create Lambda functions
         create_checkout_session = _lambda.Function(

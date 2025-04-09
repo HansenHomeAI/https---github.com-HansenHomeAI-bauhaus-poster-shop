@@ -405,6 +405,26 @@ function showSection(sectionId) {
     }
 }
 
+// Add function to generate a client ID if it doesn't exist
+function getClientId() {
+    // Try to get existing client ID from localStorage
+    let clientId = localStorage.getItem('clientId');
+    
+    // If no client ID exists, generate a new one
+    if (!clientId) {
+        // Generate a UUID-like identifier
+        clientId = 'client_' + Math.random().toString(36).substring(2, 15) + 
+                   Math.random().toString(36).substring(2, 15);
+        // Store it for future use
+        localStorage.setItem('clientId', clientId);
+    }
+    
+    return clientId;
+}
+
+// Track the current checkout job
+let currentCheckoutJob = null;
+
 // Update checkout button click handler
 document.getElementById('checkout-btn').addEventListener('click', async () => {
     const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
@@ -424,6 +444,13 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         console.log('[DEBUG] Value of stripe before stripe.elements call:', stripe);
         console.log('[DEBUG] Using publishable key:', 'pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
 
+        // Get client ID for this browser/user
+        const clientId = getClientId();
+        console.log('[DEBUG] Using client ID:', clientId);
+        
+        // Reset any previous checkout job
+        currentCheckoutJob = null;
+
         const response = await fetch(`${API_URL}/checkout`, {
             method: 'POST',
             headers: {
@@ -431,7 +458,8 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             },
             body: JSON.stringify({
                 items: cart,
-                customerEmail: localStorage.getItem('customerEmail')
+                customerEmail: localStorage.getItem('customerEmail'),
+                clientId: clientId
             })
         });
 
@@ -451,6 +479,19 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         
         const clientSecret = data.clientSecret;
         console.log('Client Secret:', clientSecret);
+        
+        // Store the job ID and order ID
+        currentCheckoutJob = {
+            jobId: data.jobId,
+            orderId: data.orderId,
+            clientId: data.clientId,
+            startTime: Date.now()
+        };
+        
+        // Store the current checkout info in sessionStorage
+        // This ensures it's limited to this browser tab
+        sessionStorage.setItem('currentCheckout', JSON.stringify(currentCheckoutJob));
+        console.log('[DEBUG] Checkout job started:', currentCheckoutJob);
         
         // Basic format validation for client secret (should start with 'pi_' for PaymentIntents)
         if (!clientSecret.startsWith('pi_')) {
@@ -473,7 +514,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             showSection('checkout-section');
             return; // Don't proceed with Stripe Elements
         }
-
+        
         // Display order summary in checkout page
         const orderSummarySection = document.createElement('div');
         orderSummarySection.classList.add('order-summary-section');
@@ -630,9 +671,18 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 messageContainer.textContent = error.message;
                 messageContainer.classList.remove("hidden");
                 setLoading(false);
+                
+                // Log the error with job details for troubleshooting
+                console.error('Payment confirmation error:', error, 'Job:', currentCheckoutJob);
             } else {
                 // Payment successful
+                console.log('Payment successful for job:', currentCheckoutJob);
+                
+                // Clear checkout data but keep client ID
                 localStorage.removeItem('cartItems');
+                sessionStorage.removeItem('currentCheckout');
+                currentCheckoutJob = null;
+                
                 updateCartCount();
                 showSection('success-section');
             }
