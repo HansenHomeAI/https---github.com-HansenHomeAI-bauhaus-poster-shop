@@ -193,13 +193,102 @@ class BackendStack(Stack):
 
         # Add order status endpoint
         order_status = api.root.add_resource("order-status")
+        order_status_integration = apigw.LambdaIntegration(
+            order_status_lambda,
+            proxy=True,
+            integration_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+                    'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'"
+                }
+            }]
+        )
+        
         order_status.add_method(
             "GET",
-            apigw.LambdaIntegration(order_status_lambda)
+            order_status_integration,
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True
+                }
+            }]
+        )
+        
+        # Add OPTIONS method for order-status (for CORS preflight)
+        order_status.add_method(
+            "OPTIONS",
+            apigw.MockIntegration(
+                integration_responses=[{
+                    'statusCode': '200',
+                    'responseParameters': {
+                        'method.response.header.Access-Control-Allow-Origin': "'*'",
+                        'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+                        'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'"
+                    }
+                }],
+                passthrough_behavior=apigw.PassthroughBehavior.NEVER,
+                request_templates={"application/json": '{"statusCode": 200}'}
+            ),
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True
+                }
+            }]
+        )
+
+        # Payment Success Lambda
+        payment_success_lambda = _lambda.Function(
+            self, 'PaymentSuccessLambda',
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            code=_lambda.Code.from_asset('backend'),
+            handler='payment_success.handler',
+            environment={
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
+                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key'),
+                'ORDERS_TABLE': orders_table.table_name,
+                'EMAIL_SENDER': self.node.try_get_context('email_sender')
+            }
+        )
+
+        # Add payment-success endpoint with CORS enabled
+        payment_success = api.root.add_resource("payment-success")
+        payment_success_integration = apigw.LambdaIntegration(
+            payment_success_lambda,
+            proxy=True,
+            integration_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Headers': "'*'",
+                    'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
+                }
+            }]
+        )
+        
+        payment_success.add_method(
+            "POST",
+            payment_success_integration,
+            method_responses=[{
+                'statusCode': '200',
+                'responseParameters': {
+                    'method.response.header.Access-Control-Allow-Origin': True,
+                    'method.response.header.Access-Control-Allow-Headers': True,
+                    'method.response.header.Access-Control-Allow-Methods': True
+                }
+            }]
         )
 
         # Grant permissions
         orders_table.grant_write_data(create_checkout_session)
         orders_table.grant_read_write_data(process_webhook)
         orders_table.grant_write_data(prodigi_webhook_lambda)
-        orders_table.grant_read_data(order_status_lambda) 
+        orders_table.grant_read_data(order_status_lambda)
+        orders_table.grant_read_write_data(payment_success_lambda)  # Grant permissions to payment success Lambda 

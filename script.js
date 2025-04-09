@@ -743,44 +743,46 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 // Log the error with job details for troubleshooting
                 console.error('Payment confirmation error:', error, 'Job:', currentCheckoutJob);
             } else {
-                // Payment successful
-                console.log('Payment successful for job:', currentCheckoutJob);
+                // Payment successful - handled by Stripe webhook
+                console.log('Payment confirmed by Stripe. Order processing will be handled by webhooks.');
                 
-                try {
-                    // Notify server about successful payment (if needed)
-                    const notifyResponse = await fetch(`${API_URL}/payment-success`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            orderId: currentCheckoutJob?.orderId,
-                            jobId: currentCheckoutJob?.jobId,
-                            clientId: currentCheckoutJob?.clientId
-                        })
-                    }).catch(err => {
-                        console.log('Failed to notify server of successful payment, but continuing:', err);
-                        // Continue with success flow even if this fails
-                    });
-                    
-                    if (notifyResponse && notifyResponse.ok) {
-                        console.log('Successfully notified server of payment completion');
-                    }
-                } catch (err) {
-                    // Just log errors but continue with success flow
-                    console.error('Error notifying server:', err);
-                }
+                // Get order ID for status polling
+                const orderId = currentCheckoutJob?.orderId;
                 
                 // Clear checkout data but keep client ID
                 localStorage.removeItem('cartItems');
                 sessionStorage.removeItem('currentCheckout');
-                currentCheckoutJob = null;
                 
                 // Clear cart and update UI
                 updateCartCount();
                 
+                // Show a loading message on the success page
+                const successSection = document.getElementById('success-section');
+                if (successSection) {
+                    const messageContainer = successSection.querySelector('.message-container');
+                    if (messageContainer) {
+                        messageContainer.innerHTML = `
+                            <h2>Payment Processing</h2>
+                            <p>Your payment is being processed. You will receive an email confirmation once the order is complete.</p>
+                            <div class="loading-spinner" style="margin: 20px auto;"></div>
+                            <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
+                        `;
+                    }
+                }
+                
                 // Show success section
                 showSection('success-section');
+                
+                // Start polling for order status if we have an order ID
+                if (orderId) {
+                    console.log('Starting to poll for order status:', orderId);
+                    pollOrderStatus(orderId);
+                } else {
+                    console.warn('No order ID available for status polling');
+                }
+                
+                // Reset current checkout job after starting the polling
+                currentCheckoutJob = null;
             }
         });
 
@@ -938,4 +940,78 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// Add a function to check order status
+async function checkOrderStatus(orderId) {
+  try {
+    const response = await fetch(`${API_URL}/order-status?orderId=${orderId}`);
+    if (!response.ok) {
+      console.error('Error fetching order status:', response.status);
+      return null;
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to check order status:', error);
+    return null;
+  }
+}
+
+// Poll for order status updates
+function pollOrderStatus(orderId, maxAttempts = 10) {
+  const successSection = document.getElementById('success-section');
+  const messageContainer = successSection.querySelector('.message-container');
+  
+  let attempts = 0;
+  const pollInterval = 5000; // 5 seconds between checks
+  
+  const checkStatus = async () => {
+    if (attempts >= maxAttempts) {
+      // Stop polling after max attempts but keep the processing screen
+      console.log('Reached maximum polling attempts');
+      return;
+    }
+    
+    attempts++;
+    const orderStatus = await checkOrderStatus(orderId);
+    
+    if (!orderStatus) {
+      // API error, try again
+      setTimeout(checkStatus, pollInterval);
+      return;
+    }
+    
+    const status = orderStatus.status;
+    console.log(`Order status check (${attempts}/${maxAttempts}):`, status);
+    
+    if (status === 'PAYMENT_COMPLETE' || status === 'PROCESSING' || status === 'FULFILLED') {
+      // Payment confirmed, update the success page
+      if (messageContainer) {
+        messageContainer.innerHTML = `
+          <h2>Payment Successful!</h2>
+          <p>Thank you for your purchase. ${status === 'PROCESSING' || status === 'FULFILLED' ? 'Your order is being processed and prepared for shipping.' : 'Your order is being prepared.'}</p>
+          <p>You will receive an email confirmation shortly.</p>
+          <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
+        `;
+      }
+    } else if (status === 'PENDING' || status === 'CREATED') {
+      // Still processing, check again
+      setTimeout(checkStatus, pollInterval);
+    } else if (status === 'FAILED' || status === 'EXPIRED') {
+      // Payment failed
+      if (messageContainer) {
+        messageContainer.innerHTML = `
+          <h2>Payment Failed</h2>
+          <p>There was an issue processing your payment. Please try again.</p>
+          <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
+        `;
+      }
+    } else {
+      // Unknown status, try again
+      setTimeout(checkStatus, pollInterval);
+    }
+  };
+  
+  // Start polling
+  setTimeout(checkStatus, 2000); // First check after 2 seconds
+}
 

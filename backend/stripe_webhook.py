@@ -21,6 +21,15 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 stripe.api_version = "2023-10-16"  # Use a stable API version that matches the frontend
 endpoint_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
+# Import Prodigi order functions if available
+try:
+    from prodigi_order import create_prodigi_order
+    HAS_PRODIGI_INTEGRATION = True
+    logger.info("Prodigi integration available")
+except ImportError:
+    HAS_PRODIGI_INTEGRATION = False
+    logger.warning("Prodigi order module not available - will not send orders for fulfillment directly")
+
 def handler(event, context):
     logger.info("Received webhook event")
     payload = event.get("body", "")
@@ -57,6 +66,19 @@ def handler(event, context):
         current_time = int(time.time())
         
         try:
+            # First, get the current order data
+            get_response = table.get_item(Key={"order_id": order_id})
+            order = get_response.get("Item", {})
+            
+            if not order:
+                logger.error(f"Order {order_id} not found in DynamoDB")
+                return {"statusCode": 404, "body": json.dumps({"error": f"Order {order_id} not found"})}
+            
+            # Check if order has already been processed
+            if order.get("status") == "PAYMENT_COMPLETE" or order.get("status") == "PROCESSING":
+                logger.info(f"Order {order_id} already processed. Current status: {order.get('status')}")
+                return {"statusCode": 200, "body": json.dumps({"received": True, "status": "already_processed"})}
+                
             # Update order status in DynamoDB
             update_response = table.update_item(
                 Key={"order_id": order_id},
@@ -75,25 +97,76 @@ def handler(event, context):
             # Get the updated order
             updated_order = update_response.get("Attributes", {})
             
-            # Invoke order fulfillment Lambda asynchronously
-            prodigi_lambda_name = os.environ.get("PRODIGI_ORDER_FUNCTION_NAME")
-            if prodigi_lambda_name:
-                logger.info(f"Invoking Prodigi order processing for order: {order_id}")
-                
-                invoke_payload = {
+            # Try to create Prodigi order directly if integration is available
+            prodigi_order_id = None
+            if HAS_PRODIGI_INTEGRATION:
+                try:
+                    logger.info(f"Creating Prodigi order directly for order: {order_id}")
+                    prodigi_result = create_prodigi_order(updated_order)
+                    prodigi_order_id = prodigi_result.get("prodigi_order_id")
+                    
+                    if prodigi_order_id:
+                        # Update order with Prodigi order ID
+                        table.update_item(
+                            Key={"order_id": order_id},
+                            UpdateExpression="SET prodigi_order_id = :poi, status = :status, updated_at = :time",
+                            ExpressionAttributeValues={
+                                ":poi": prodigi_order_id,
+                                ":status": "PROCESSING",
+                                ":time": current_time
+                            }
+                        )
+                        logger.info(f"Created Prodigi order {prodigi_order_id} for order {order_id}")
+                    else:
+                        logger.error(f"Failed to create Prodigi order directly, prodigi_order_id not returned")
+                        # Fall back to Lambda invocation if direct integration fails
+                        prodigi_order_id = None
+                except Exception as e:
+                    logger.error(f"Error creating Prodigi order directly: {str(e)}")
+                    # Fall back to Lambda invocation
+                    prodigi_order_id = None
+            
+            # If direct Prodigi order creation failed or isn't available, invoke the dedicated Lambda
+            if not prodigi_order_id:
+                prodigi_lambda_name = os.environ.get("PRODIGI_ORDER_FUNCTION_NAME")
+                if prodigi_lambda_name:
+                    logger.info(f"Invoking Prodigi order Lambda for order: {order_id}")
+                    
+                    invoke_payload = {
+                        "order_id": order_id,
+                        "client_id": client_id,
+                        "job_id": job_id,
+                        "payment_intent": payment_intent,
+                        "order": updated_order
+                    }
+                    
+                    response = lambda_client.invoke(
+                        FunctionName=prodigi_lambda_name,
+                        InvocationType="RequestResponse",  # Synchronous invocation for reliability
+                        Payload=json.dumps(invoke_payload)
+                    )
+                    
+                    # Log the response from the Prodigi Lambda
+                    payload = json.loads(response["Payload"].read().decode())
+                    logger.info(f"Prodigi Lambda response: {payload}")
+                    
+                    if response["StatusCode"] != 200:
+                        logger.error(f"Error invoking Prodigi Lambda: {payload}")
+                else:
+                    logger.warning("No PRODIGI_ORDER_FUNCTION_NAME configured, order fulfillment delayed")
+            
+            return {
+                "statusCode": 200, 
+                "body": json.dumps({
+                    "received": True,
                     "order_id": order_id,
-                    "client_id": client_id,
-                    "job_id": job_id,
-                    "payment_intent": payment_intent
-                }
+                    "prodigi_order_created": prodigi_order_id is not None
+                })
+            }
                 
-                lambda_client.invoke(
-                    FunctionName=prodigi_lambda_name,
-                    InvocationType="Event",  # Asynchronous invocation
-                    Payload=json.dumps(invoke_payload)
-                )
         except Exception as e:
             logger.error(f"Error updating order status: {str(e)}")
             return {"statusCode": 500, "body": json.dumps({"error": f"Error processing payment: {str(e)}"})}
 
+    # For other event types, just acknowledge receipt
     return {"statusCode": 200, "body": json.dumps({"received": True})} 
