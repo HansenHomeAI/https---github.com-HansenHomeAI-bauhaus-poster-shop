@@ -52,8 +52,10 @@ const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
 // Initialize Stripe
 let stripe
 try {
-  // Initialize Stripe with your actual TEST publishable key
-  stripe = Stripe('pk_test_51PbnbRRut3hoXCRuvAFtiAxWeHMKZM6fp3E5kHmdUWZM0NCB22aq35S0cS74vmDoPwOq7BLbUmNqUZslSuhJM4bH00aXzK4Rr7'); // Using your provided pk_test_... key
+  // Initialize Stripe with your actual TEST publishable key and specify the newer API version
+  stripe = Stripe('pk_test_51PbnbRRut3hoXCRuvAFtiAxWeHMKZM6fp3E5kHmdUWZM0NCB22aq35S0cS74vmDoPwOq7BLbUmNqUZslSuhJM4bH00aXzK4Rr7', {
+    apiVersion: '2025-03-31.basil'
+  });
   console.log('[DEBUG] Stripe initialized:', stripe); // Added log
 } catch (error) {
   console.error("Failed to initialize Stripe:", error)
@@ -513,7 +515,9 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         try {
             elements = stripe.elements({
                 appearance,
-                clientSecret
+                clientSecret,
+                // Add API version to ensure Elements compatibility with 2025-03-31.basil
+                apiVersion: '2025-03-31.basil'
             });
 
             const paymentElement = elements.create("payment", paymentElementOptions);

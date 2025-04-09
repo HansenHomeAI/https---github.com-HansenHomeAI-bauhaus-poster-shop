@@ -10,6 +10,7 @@ logger.setLevel(logging.INFO)
 
 # Initialize Stripe with your secret key
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+# Use the newer Stripe API version to match the frontend
 stripe.api_version = "2025-03-31.basil"
 
 def create_cors_response(status_code, body):

@@ -12,6 +12,7 @@ lambda_client = boto3.client("lambda")
 
 # Set your Stripe secret and webhook secret
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+stripe.api_version = "2025-03-31.basil"  # Set API version to match other components
 endpoint_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
 def handler(event, context):
