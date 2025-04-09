@@ -729,7 +729,7 @@ footer {
     max-width: 95%;
     max-height: 90vh;
   }
-  
+
   .modal-product {
     flex-direction: column;
   }
@@ -752,7 +752,7 @@ footer {
     width: 100%;
     right: -100%;
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }

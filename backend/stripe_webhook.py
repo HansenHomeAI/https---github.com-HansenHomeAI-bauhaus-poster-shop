@@ -186,7 +186,7 @@ def handler(event, context):
             # Invoke order fulfillment Lambda asynchronously
             prodigi_lambda_name = os.environ.get("PRODIGI_ORDER_FUNCTION_NAME")
             if prodigi_lambda_name:
-                logger.info(f"Invoking Prodigi order processing for order: {order_id}")
+                logger.info(f"Invoking Prodigi order processing for order: {order_id} using function: {prodigi_lambda_name}")
                 
                 invoke_payload = {
                     "order_id": order_id,
@@ -195,11 +195,18 @@ def handler(event, context):
                     "payment_intent": payment_intent
                 }
                 
-                lambda_client.invoke(
-                    FunctionName=prodigi_lambda_name,
-                    InvocationType="Event",  # Asynchronous invocation
-                    Payload=json.dumps(invoke_payload)
-                )
+                try:
+                    lambda_response = lambda_client.invoke(
+                        FunctionName=prodigi_lambda_name,
+                        InvocationType="Event",  # Asynchronous invocation
+                        Payload=json.dumps(invoke_payload)
+                    )
+                    logger.info(f"Successfully invoked Prodigi Lambda. Response: {lambda_response}")
+                except Exception as lambda_err:
+                    logger.error(f"Failed to invoke Prodigi Lambda: {str(lambda_err)}")
+                    # Continue processing since this is non-critical
+            else:
+                logger.warning(f"PRODIGI_ORDER_FUNCTION_NAME environment variable not set. Skipping Prodigi order creation for order: {order_id}")
             
             # Try to update the client's browser by posting to our webhook-status resource
             try:

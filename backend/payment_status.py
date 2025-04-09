@@ -26,7 +26,7 @@ def handler(event, context):
         return {
             'statusCode': 400,
             'headers': {
-                'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': '*',
                 'Access-Control-Allow-Methods': 'OPTIONS,GET'
             },
@@ -40,7 +40,7 @@ def handler(event, context):
         return {
             'statusCode': 400,
             'headers': {
-                'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': '*',
                 'Access-Control-Allow-Methods': 'OPTIONS,GET'
             },
@@ -57,7 +57,7 @@ def handler(event, context):
                 return {
                     'statusCode': 404,
                     'headers': {
-                        'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                        'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Headers': '*',
                         'Access-Control-Allow-Methods': 'OPTIONS,GET'
                     },
@@ -70,7 +70,7 @@ def handler(event, context):
                 return {
                     'statusCode': 200,
                     'headers': {
-                        'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                        'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Headers': '*',
                         'Access-Control-Allow-Methods': 'OPTIONS,GET'
                     },
@@ -85,7 +85,7 @@ def handler(event, context):
                 return {
                     'statusCode': 200,
                     'headers': {
-                        'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                        'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Headers': '*',
                         'Access-Control-Allow-Methods': 'OPTIONS,GET'
                     },
@@ -101,7 +101,7 @@ def handler(event, context):
             return {
                 'statusCode': 500,
                 'headers': {
-                    'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                    'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Headers': '*',
                     'Access-Control-Allow-Methods': 'OPTIONS,GET'
                 },
@@ -133,7 +133,7 @@ def handler(event, context):
             return {
                 'statusCode': 200,
                 'headers': {
-                    'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                    'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Headers': '*',
                     'Access-Control-Allow-Methods': 'OPTIONS,GET'
                 },
@@ -149,7 +149,7 @@ def handler(event, context):
             return {
                 'statusCode': 200,
                 'headers': {
-                    'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                    'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Headers': '*',
                     'Access-Control-Allow-Methods': 'OPTIONS,GET'
                 },
@@ -163,7 +163,7 @@ def handler(event, context):
         return {
             'statusCode': 500,
             'headers': {
-                'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': '*',
                 'Access-Control-Allow-Methods': 'OPTIONS,GET'
             },

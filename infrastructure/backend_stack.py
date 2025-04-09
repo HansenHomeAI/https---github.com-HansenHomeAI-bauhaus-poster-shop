@@ -64,17 +64,45 @@ class BackendStack(Stack):
             }
         )
 
+        # Prodigi Order Lambda
+        prodigi_order_lambda = _lambda.Function(
+            self, "ProdigiOrderLambda",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            handler="prodigi_order.handler",
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
+            environment={
+                "ORDERS_TABLE": orders_table.table_name,
+                "PRODIGI_API_KEY": self.node.try_get_context('prodigi_sandbox_api_key')
+            },
+            timeout=Duration.seconds(30)  # Give it enough time to process the API call
+        )
+        
+        # Grant permissions for Prodigi Order Lambda
+        orders_table.grant_read_write_data(prodigi_order_lambda)
+        
+        # Update the ProcessWebhook Lambda to reference the Prodigi Order Lambda
         process_webhook = _lambda.Function(
             self, 'ProcessWebhook',
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset('backend'),
-            handler='process_webhook.handler',
+            handler='stripe_webhook.handler',  # Changed to match the actual file name
             environment={
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
                 'STRIPE_WEBHOOK_SECRET': self.node.try_get_context('stripe_webhook_secret'),
                 'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key'),
                 'ORDERS_TABLE': orders_table.table_name,
-                'EMAIL_SENDER': self.node.try_get_context('email_sender')
+                'EMAIL_SENDER': self.node.try_get_context('email_sender'),
+                'EMAIL_PASSWORD': self.node.try_get_context('email_password'),
+                'PRODIGI_ORDER_FUNCTION_NAME': prodigi_order_lambda.function_name  # Reference the actual function name
             }
         )
 
@@ -119,13 +147,13 @@ class BackendStack(Stack):
             }
         )
 
-        # Create API Gateway with CORS enabled - specify hansenhomeai.github.io
+        # Create API Gateway with CORS enabled - allow all origins
         api = apigw.RestApi(
             self, "PosterShopApi",
             rest_api_name="Poster Shop API",
             description="API for the Bauhaus Poster Shop",
             default_cors_preflight_options=apigw.CorsOptions(
-                allow_origins=["https://hansenhomeai.github.io"],
+                allow_origins=["*"],
                 allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["*"],
                 allow_credentials=False,
@@ -141,7 +169,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
@@ -220,7 +248,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
@@ -259,7 +287,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET'"
                 }
@@ -285,4 +313,22 @@ class BackendStack(Stack):
         orders_table.grant_write_data(prodigi_webhook_lambda)
         orders_table.grant_read_data(order_status_lambda)
         orders_table.grant_read_data(payment_status_lambda)  # Grant permissions to payment status Lambda
-        orders_table.grant_read_write_data(payment_success_lambda)  # Grant permissions to payment success Lambda 
+        orders_table.grant_read_write_data(payment_success_lambda)  # Grant permissions to payment success Lambda
+
+        # Add logging configuration function
+        def add_enhanced_logging(lambda_function):
+            """Add enhanced CloudWatch logging for Lambda functions"""
+            lambda_function.add_environment("LOG_LEVEL", "INFO")
+            lambda_function.add_environment("POWERTOOLS_SERVICE_NAME", "poster-shop")
+            lambda_function.add_environment("POWERTOOLS_LOGGER_SAMPLE_RATE", "1.0")
+            lambda_function.add_environment("POWERTOOLS_LOGGER_LOG_EVENT", "true")
+            
+        # Apply enhanced logging to all Lambda functions
+        add_enhanced_logging(order_cleanup_lambda)
+        add_enhanced_logging(create_checkout_session)
+        add_enhanced_logging(process_webhook)
+        add_enhanced_logging(prodigi_webhook_lambda)
+        add_enhanced_logging(order_status_lambda)
+        add_enhanced_logging(payment_success_lambda)
+        add_enhanced_logging(payment_status_lambda)
+        add_enhanced_logging(prodigi_order_lambda) 
