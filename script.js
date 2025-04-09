@@ -53,7 +53,7 @@ const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
 let stripe
 try {
   // Initialize Stripe with your production publishable key and stable API version
-  stripe = Stripe('pk_live_51PbnbRRut3hoXCRuRBzr3XNbQUWP9OqlvLkb8SxS5ylEuCcHpbSZOAyXLkGIsPXUL7lvk5RARNtlsnvQsIEX5wdO00jfovCCw1', {
+  stripe = Stripe('pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l', {
     apiVersion: '2023-10-16', // Using stable API version
     locale: 'en' // Specify locale
   });
@@ -413,7 +413,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     try {
         // Added log before using stripe
         console.log('[DEBUG] Value of stripe before stripe.elements call:', stripe);
-        console.log('[DEBUG] Using publishable key:', 'pk_live_51PbnbRRut3hoXCRuRBzr3XNbQUWP9OqlvLkb8SxS5ylEuCcHpbSZOAyXLkGIsPXUL7lvk5RARNtlsnvQsIEX5wdO00jfovCCw1');
+        console.log('[DEBUG] Using publishable key:', 'pk_live_51PbnbRRut3hoXCRuHV1jx7CxLFOUarhmGYpEqoAAechuMo3O6vSdhGzEj1XLogas2o9kKhRCYruCGCZ7pdkwU7m600cNO9Wq2l');
 
         const response = await fetch(`${API_URL}/checkout`, {
             method: 'POST',
