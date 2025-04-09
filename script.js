@@ -4,35 +4,35 @@ const products = [
     id: 1,
     name: "Christ in Gethsemane",
     description: "Powerful depiction of Christ's prayer in Gethsemane",
-    price: 0.50,
+    price: 0.10,
     image: "assets/poster1.jpg",
   },
   {
     id: 2,
     name: "The First Vision",
     description: "Sacred moment of Joseph Smith's first vision",
-    price: 0.50,
+    price: 0.10,
     image: "assets/poster2.jpg",
   },
   {
     id: 3,
     name: "The Living Christ",
     description: "Inspiring representation of the resurrected Christ",
-    price: 0.50,
+    price: 0.10,
     image: "assets/poster3.jpg",
   },
   {
     id: 4,
     name: "The Restoration",
     description: "Symbolic representation of the Restoration",
-    price: 0.50,
+    price: 0.10,
     image: "assets/poster4.jpg",
   },
   {
     id: 5,
     name: "The Plan of Salvation",
     description: "Beautiful visualization of God's plan",
-    price: 0.50,
+    price: 0.10,
     image: "assets/poster5.jpg",
   }
 ]
@@ -75,7 +75,6 @@ const cartToggle = document.getElementById("cart-toggle")
 const closeCartBtn = document.getElementById("close-cart")
 const productModal = document.getElementById("product-modal")
 const closeModal = document.getElementById("close-modal")
-const newsletterForm = document.getElementById("newsletter-form")
 const contactLink = document.getElementById("contact-link")
 
 // Initialize cart count visibility
@@ -320,19 +319,17 @@ function closeCart() {
   overlay.classList.remove("open")
 }
 
-// Handle newsletter form submission
-newsletterForm.addEventListener("submit", (e) => {
-  e.preventDefault()
-  const email = newsletterForm.querySelector("input").value
-
-  // Simulate API call
-  console.log("Subscribing email:", email)
-
-  // Show success message
-  alert("Thank you for subscribing to our newsletter!")
-
-  // Reset form
-  newsletterForm.reset()
+// Handle feedback button click
+document.addEventListener('DOMContentLoaded', () => {
+  const feedbackBtn = document.getElementById("feedback-btn")
+  if (feedbackBtn) {
+    feedbackBtn.addEventListener("click", (e) => {
+      e.preventDefault()
+      const email = "hello@hansenhome.ai"
+      const subject = "Website Feedback"
+      window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}`
+    })
+  }
 })
 
 // Contact link
