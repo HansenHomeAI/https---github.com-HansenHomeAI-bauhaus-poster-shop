@@ -414,10 +414,44 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             })
         });
 
-        const { clientSecret } = await response.json();
+        // Check if the response is successful before proceeding
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('API Error:', response.status, errorData);
+            throw new Error(`Checkout API returned ${response.status}: ${errorData.message || 'Unknown error'}`);
+        }
 
-        // Log the clientSecret to verify it's correctly retrieved
+        const data = await response.json();
+        
+        // Verify we have a valid clientSecret
+        if (!data.clientSecret) {
+            throw new Error('No client secret returned from API');
+        }
+        
+        const clientSecret = data.clientSecret;
         console.log('Client Secret:', clientSecret);
+        
+        // Basic format validation for client secret (should start with 'pi_' for PaymentIntents)
+        if (!clientSecret.startsWith('pi_')) {
+            console.error('Invalid client secret format:', clientSecret);
+            
+            // Display error on the page
+            const checkoutSection = document.getElementById('checkout-section');
+            if (checkoutSection) {
+                const errorElement = document.createElement('div');
+                errorElement.className = 'error-message';
+                errorElement.style.color = 'red';
+                errorElement.style.padding = '20px';
+                errorElement.style.marginTop = '20px';
+                errorElement.textContent = 'Invalid payment session. Please try again.';
+                
+                // Insert at the beginning of the checkout section
+                checkoutSection.prepend(errorElement);
+            }
+            
+            showSection('checkout-section');
+            return; // Don't proceed with Stripe Elements
+        }
 
         // Display order summary in checkout page
         const orderSummarySection = document.createElement('div');
@@ -475,17 +509,29 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         };
 
         // Initialize Stripe Elements with error handling
+        let elements;
         try {
-            const elements = stripe.elements({
+            elements = stripe.elements({
                 appearance,
                 clientSecret
             });
 
             const paymentElement = elements.create("payment", paymentElementOptions);
+            paymentElement.on('loaderror', (event) => {
+                console.error('Payment element loading error:', event);
+                const messageContainer = document.querySelector("#payment-message");
+                messageContainer.textContent = "Failed to load payment form. Please refresh and try again.";
+                messageContainer.classList.remove("hidden");
+                setLoading(false);
+            });
+            
             paymentElement.mount("#payment-element");
         } catch (error) {
             console.error('Error initializing Stripe Elements:', error);
-            alert('Failed to load payment options. Please try again later.');
+            const messageContainer = document.querySelector("#payment-message");
+            messageContainer.textContent = "Failed to initialize payment. Please refresh and try again.";
+            messageContainer.classList.remove("hidden");
+            return; // Don't proceed further
         }
 
         // Show checkout section
@@ -496,6 +542,14 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
             setLoading(true);
+
+            if (!elements) {
+                const messageContainer = document.querySelector("#payment-message");
+                messageContainer.textContent = "Payment form not loaded properly. Please refresh and try again.";
+                messageContainer.classList.remove("hidden");
+                setLoading(false);
+                return;
+            }
 
             const { error } = await stripe.confirmPayment({
                 elements,
