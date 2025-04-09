@@ -4,35 +4,35 @@ const products = [
     id: 1,
     name: "Christ in Gethsemane",
     description: "Powerful depiction of Christ's prayer in Gethsemane",
-    price: 39.99,
+    price: 0.50,
     image: "assets/poster1.jpg",
   },
   {
     id: 2,
     name: "The First Vision",
     description: "Sacred moment of Joseph Smith's first vision",
-    price: 39.99,
+    price: 0.50,
     image: "assets/poster2.jpg",
   },
   {
     id: 3,
     name: "The Living Christ",
     description: "Inspiring representation of the resurrected Christ",
-    price: 39.99,
+    price: 0.50,
     image: "assets/poster3.jpg",
   },
   {
     id: 4,
     name: "The Restoration",
     description: "Symbolic representation of the Restoration",
-    price: 39.99,
+    price: 0.50,
     image: "assets/poster4.jpg",
   },
   {
     id: 5,
     name: "The Plan of Salvation",
     description: "Beautiful visualization of God's plan",
-    price: 39.99,
+    price: 0.50,
     image: "assets/poster5.jpg",
   }
 ]
@@ -52,8 +52,8 @@ const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
 // Initialize Stripe
 let stripe
 try {
-  // Initialize Stripe with your actual TEST publishable key and stable API version
-  stripe = Stripe('pk_test_51PbnbRRut3hoXCRuvAFtiAxWeHMKZM6fp3E5kHmdUWZM0NCB22aq35S0cS74vmDoPwOq7BLbUmNqUZslSuhJM4bH00aXzK4Rr7', {
+  // Initialize Stripe with your production publishable key and stable API version
+  stripe = Stripe('pk_live_51PbnbRRut3hoXCRuRBzr3XNbQUWP9OqlvLkb8SxS5ylEuCcHpbSZOAyXLkGIsPXUL7lvk5RARNtlsnvQsIEX5wdO00jfovCCw1', {
     apiVersion: '2023-10-16', // Using stable API version
     locale: 'en' // Specify locale
   });
@@ -413,7 +413,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     try {
         // Added log before using stripe
         console.log('[DEBUG] Value of stripe before stripe.elements call:', stripe);
-        console.log('[DEBUG] Using publishable key:', 'pk_test_51PbnbRRut3hoXCRuvAFtiAxWeHMKZM6fp3E5kHmdUWZM0NCB22aq35S0cS74vmDoPwOq7BLbUmNqUZslSuhJM4bH00aXzK4Rr7');
+        console.log('[DEBUG] Using publishable key:', 'pk_live_51PbnbRRut3hoXCRuRBzr3XNbQUWP9OqlvLkb8SxS5ylEuCcHpbSZOAyXLkGIsPXUL7lvk5RARNtlsnvQsIEX5wdO00jfovCCw1');
 
         const response = await fetch(`${API_URL}/checkout`, {
             method: 'POST',
