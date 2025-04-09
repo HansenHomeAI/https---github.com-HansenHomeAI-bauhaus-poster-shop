@@ -427,8 +427,7 @@ let currentCheckoutJob = null;
 
 // Update checkout button click handler
 document.getElementById('checkout-btn').addEventListener('click', async () => {
-    const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
-    if (cartItems.length === 0) {
+    if (cart.length === 0) {
         alert('Your cart is empty');
         return;
     }
@@ -515,6 +514,9 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             return; // Don't proceed with Stripe Elements
         }
         
+        // Make a copy of the current cart state for order summary
+        const currentCartItems = [...cart];
+        
         // Display order summary in checkout page
         const orderSummarySection = document.createElement('div');
         orderSummarySection.classList.add('order-summary-section');
@@ -522,7 +524,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         let summaryHTML = '<h2>Order Summary</h2><div class="order-items">';
         let total = 0;
         
-        cartItems.forEach(item => {
+        currentCartItems.forEach(item => {
             summaryHTML += `
                 <div class="order-item">
                     <div class="order-item-details">
