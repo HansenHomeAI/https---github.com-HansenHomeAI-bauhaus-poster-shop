@@ -78,6 +78,11 @@ const closeModal = document.getElementById("close-modal")
 const newsletterForm = document.getElementById("newsletter-form")
 const contactLink = document.getElementById("contact-link")
 
+// Initialize cart count visibility
+if (cart.length === 0) {
+  cartCount.style.display = 'none'
+}
+
 // Display products
 function displayProducts() {
   productsGrid.innerHTML = ""
@@ -207,7 +212,6 @@ function updateCart() {
           <span>${item.quantity}</span>
           <button class="quantity-btn increase" data-id="${item.id}">+</button>
         </div>
-        <button class="cart-item-remove" data-id="${item.id}">Remove</button>
       </div>
     `
 
@@ -216,7 +220,6 @@ function updateCart() {
     // Add event listeners
     const decreaseBtn = cartItem.querySelector(".decrease")
     const increaseBtn = cartItem.querySelector(".increase")
-    const removeBtn = cartItem.querySelector(".cart-item-remove")
 
     decreaseBtn.addEventListener("click", () => {
       decreaseQuantity(item.id)
@@ -226,10 +229,6 @@ function updateCart() {
       increaseQuantity(item.id)
     })
 
-    removeBtn.addEventListener("click", () => {
-      removeFromCart(item.id)
-    })
-
     // Update total and count
     total += item.price * item.quantity
     count += item.quantity
@@ -237,7 +236,14 @@ function updateCart() {
 
   // Update cart total and count
   cartTotal.textContent = `$${total.toFixed(2)}`
+  
+  // Update cart count and visibility of count badge
   cartCount.textContent = count
+  if (count > 0) {
+    cartCount.style.display = 'flex'
+  } else {
+    cartCount.style.display = 'none'
+  }
 
   // Add email input if not already present
   let emailContainer = document.querySelector('.cart-email-container');
@@ -247,7 +253,7 @@ function updateCart() {
     emailContainer.innerHTML = `
       <div class="email-input-wrapper">
         <input type="email" id="cart-email" placeholder=" " required>
-        <label for="cart-email">Email for Order Updates</label>
+        <label for="cart-email">Email for Shipping Updates</label>
         <div class="email-validation-message">Please enter a valid email address</div>
       </div>
     `;
@@ -706,5 +712,30 @@ document.addEventListener('keydown', function(event) {
         console.log('[DEBUG] Running Stripe key test');
         testStripeKeyMatch();
     }
+});
+
+// Event listeners for navigation links that work everywhere including checkout page
+document.addEventListener('DOMContentLoaded', () => {
+  const navLinks = document.querySelectorAll('.nav-links a');
+  
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = link.getAttribute('href').substring(1);
+      
+      // If we're on checkout page or other special pages, first go back to main content
+      if (document.querySelector('.page-section:not(.hidden)')) {
+        showMainContent();
+      }
+      
+      // Then scroll to the target section
+      setTimeout(() => {
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+          targetSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    });
+  });
 });
 
