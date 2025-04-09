@@ -58,6 +58,11 @@ try {
     locale: 'en' // Specify locale
   });
   console.log('[DEBUG] Stripe initialized:', stripe); // Added log
+  
+  // Verify stripe is properly initialized
+  if (!stripe || typeof stripe.elements !== 'function') {
+    throw new Error('Stripe failed to initialize properly');
+  }
 } catch (error) {
   console.error("Failed to initialize Stripe:", error)
   console.error('[DEBUG] Stripe initialization FAILED'); // Added log
@@ -553,7 +558,29 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 setLoading(false);
             });
             
-            paymentElement.mount("#payment-element");
+            // Make sure checkout section is visible before mounting
+            showSection('checkout-section');
+            
+            // Add a small timeout to ensure DOM is fully rendered
+            setTimeout(() => {
+                try {
+                    // Check if element exists
+                    const paymentElementContainer = document.querySelector("#payment-element");
+                    if (!paymentElementContainer) {
+                        throw new Error("Payment element container not found in DOM");
+                    }
+                    
+                    // Mount the payment element
+                    console.log('[DEBUG] Mounting payment element to', paymentElementContainer);
+                    paymentElement.mount("#payment-element");
+                    console.log('[DEBUG] Payment element mounted successfully');
+                } catch (mountError) {
+                    console.error('Error mounting payment element:', mountError);
+                    const messageContainer = document.querySelector("#payment-message");
+                    messageContainer.textContent = "Failed to display payment form: " + mountError.message;
+                    messageContainer.classList.remove("hidden");
+                }
+            }, 100);
         } catch (error) {
             console.error('Error initializing Stripe Elements:', error);
             const messageContainer = document.querySelector("#payment-message");
@@ -562,8 +589,8 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             return; // Don't proceed further
         }
 
-        // Show checkout section
-        showSection('checkout-section');
+        // Show checkout section (moved this above to ensure it's visible before mounting)
+        // showSection('checkout-section');
 
         // Handle form submission
         const form = document.querySelector("#payment-form");
