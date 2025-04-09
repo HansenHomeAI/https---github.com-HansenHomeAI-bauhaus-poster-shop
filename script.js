@@ -426,6 +426,18 @@ function showSection(sectionId) {
     }
 }
 
+// Add this function to update cart count after payment
+function updateCartCount() {
+  // Clear cart array
+  cart = [];
+  
+  // Update cart display
+  updateCart();
+  
+  // Close cart sidebar if open
+  closeCart();
+}
+
 // Update checkout button click handler
 document.getElementById('checkout-btn').addEventListener('click', async () => {
     if (cart.length === 0) {
@@ -734,12 +746,40 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 // Payment successful
                 console.log('Payment successful for job:', currentCheckoutJob);
                 
+                try {
+                    // Notify server about successful payment (if needed)
+                    const notifyResponse = await fetch(`${API_URL}/payment-success`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            orderId: currentCheckoutJob?.orderId,
+                            jobId: currentCheckoutJob?.jobId,
+                            clientId: currentCheckoutJob?.clientId
+                        })
+                    }).catch(err => {
+                        console.log('Failed to notify server of successful payment, but continuing:', err);
+                        // Continue with success flow even if this fails
+                    });
+                    
+                    if (notifyResponse && notifyResponse.ok) {
+                        console.log('Successfully notified server of payment completion');
+                    }
+                } catch (err) {
+                    // Just log errors but continue with success flow
+                    console.error('Error notifying server:', err);
+                }
+                
                 // Clear checkout data but keep client ID
                 localStorage.removeItem('cartItems');
                 sessionStorage.removeItem('currentCheckout');
                 currentCheckoutJob = null;
                 
+                // Clear cart and update UI
                 updateCartCount();
+                
+                // Show success section
                 showSection('success-section');
             }
         });
