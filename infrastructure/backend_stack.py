@@ -89,22 +89,34 @@ class BackendStack(Stack):
         # Grant permissions for Prodigi Order Lambda
         orders_table.grant_read_write_data(prodigi_order_lambda)
         
-        # Update the ProcessWebhook Lambda to reference the Prodigi Order Lambda
+        # Add SES permissions using an IAM policy statement
+        ses_policy_statement = iam.PolicyStatement(
+            effect=iam.Effect.ALLOW,
+            actions=[
+                "ses:SendEmail",
+                "ses:SendRawEmail"
+            ],
+            resources=["*"]  # You can restrict this to specific ARNs if desired
+        )
+        
+        # Update ProcessWebhook Lambda to use SES
         process_webhook = _lambda.Function(
             self, 'ProcessWebhook',
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset('backend'),
-            handler='stripe_webhook.handler',  # Changed to match the actual file name
+            handler='stripe_webhook.handler',
             environment={
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
                 'STRIPE_WEBHOOK_SECRET': self.node.try_get_context('stripe_webhook_secret'),
                 'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key'),
                 'ORDERS_TABLE': orders_table.table_name,
-                'EMAIL_SENDER': self.node.try_get_context('email_sender'),
-                'EMAIL_PASSWORD': self.node.try_get_context('email_password'),
-                'PRODIGI_ORDER_FUNCTION_NAME': prodigi_order_lambda.function_name  # Reference the actual function name
+                'SES_SENDER_EMAIL': self.node.try_get_context('ses_sender_email') or 'hello@hansenhome.ai',
+                'PRODIGI_ORDER_FUNCTION_NAME': prodigi_order_lambda.function_name
             }
         )
+        
+        # Add SES permissions to the webhook Lambda
+        process_webhook.add_to_role_policy(ses_policy_statement)
 
         # Prodigi Webhook Lambda
         prodigi_webhook_lambda = _lambda.Function(
@@ -123,9 +135,12 @@ class BackendStack(Stack):
             ),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
-                "EMAIL_SENDER": self.node.try_get_context('email_sender')
+                "SES_SENDER_EMAIL": self.node.try_get_context('ses_sender_email') or 'hello@hansenhome.ai'
             }
         )
+        
+        # Add SES permissions to prodigi webhook Lambda
+        prodigi_webhook_lambda.add_to_role_policy(ses_policy_statement)
 
         # Order Status Lambda
         order_status_lambda = _lambda.Function(
@@ -236,9 +251,12 @@ class BackendStack(Stack):
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
                 'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key'),
                 'ORDERS_TABLE': orders_table.table_name,
-                'EMAIL_SENDER': self.node.try_get_context('email_sender')
+                'SES_SENDER_EMAIL': self.node.try_get_context('ses_sender_email') or 'hello@hansenhome.ai'
             }
         )
+        
+        # Add SES permissions to payment success Lambda
+        payment_success_lambda.add_to_role_policy(ses_policy_statement)
 
         # Add payment-success endpoint with CORS enabled
         payment_success = api.root.add_resource("payment-success")

@@ -6,7 +6,6 @@ from decimal import Decimal
 import logging
 import time
 import requests
-import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -19,6 +18,7 @@ dynamodb = boto3.resource("dynamodb")
 orders_table_name = os.environ.get("ORDERS_TABLE", "BauhausPosterShopOrders")
 table = dynamodb.Table(orders_table_name)
 lambda_client = boto3.client("lambda")
+ses_client = boto3.client('ses')
 
 # Set your Stripe secret and webhook secret
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
@@ -26,15 +26,11 @@ stripe.api_version = "2023-10-16"  # Use a stable API version that matches the f
 endpoint_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
 # Email configuration
-EMAIL_SENDER = os.environ.get("EMAIL_SENDER")
 NOTIFICATION_EMAIL = "hello@hansenhome.ai"
+SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "hello@hansenhome.ai")
 
 def send_notification_email(order_data, payment_intent):
-    """Send an email notification about a new purchase"""
-    if not EMAIL_SENDER:
-        logger.warning("No EMAIL_SENDER configured, skipping notification")
-        return
-    
+    """Send an email notification about a new purchase using AWS SES"""
     try:
         # Extract order details
         order_id = order_data.get('order_id', 'Unknown')
@@ -51,12 +47,6 @@ def send_notification_email(order_data, payment_intent):
             qty = item.get('quantity', 1)
             price = item.get('price', 0)
             items_html += f"<li>{name} x {qty} - ${price}</li>"
-        
-        # Create email message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"New Order: {order_id}"
-        msg['From'] = EMAIL_SENDER
-        msg['To'] = NOTIFICATION_EMAIL
         
         # Create HTML version
         html = f"""
@@ -107,20 +97,32 @@ def send_notification_email(order_data, payment_intent):
         This order is being processed for fulfillment through Prodigi.
         """
         
-        # Attach parts
-        msg.attach(MIMEText(text, 'plain'))
-        msg.attach(MIMEText(html, 'html'))
+        # Send email using AWS SES
+        response = ses_client.send_email(
+            Source=SES_SENDER_EMAIL,
+            Destination={
+                'ToAddresses': [NOTIFICATION_EMAIL]
+            },
+            Message={
+                'Subject': {
+                    'Data': f"New Order: {order_id}"
+                },
+                'Body': {
+                    'Text': {
+                        'Data': text
+                    },
+                    'Html': {
+                        'Data': html
+                    }
+                }
+            }
+        )
         
-        # Send email
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login(EMAIL_SENDER, os.environ.get('EMAIL_PASSWORD', ''))
-            server.send_message(msg)
-            
-        logger.info(f"Notification email sent for order {order_id}")
+        logger.info(f"Notification email sent for order {order_id} with message ID: {response['MessageId']}")
         
     except Exception as e:
         logger.error(f"Failed to send notification email: {str(e)}")
+        logger.error(f"SES sender email: {SES_SENDER_EMAIL}, notification email: {NOTIFICATION_EMAIL}")
 
 def handler(event, context):
     logger.info("Received webhook event")

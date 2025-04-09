@@ -1,3 +1,6 @@
 {
-  "app": "python app.py"
+  "app": "python app.py",
+  "context": {
+    "ses_sender_email": "hello@hansenhome.ai"
+  }
 } 
