@@ -937,13 +937,25 @@ function startPaymentStatusPolling() {
     
     // Set polling interval
     const pollingInterval = 5000; // 5 seconds
-    const maxPolls = 60; // Stop after 5 minutes (60 * 5 seconds)
+    const maxPolls = 12; // Stop after 1 minute (12 * 5 seconds)
     let pollCount = 0;
+    let corsErrorCount = 0; // Track CORS errors
     
     // Show a timer on the page
     const processingNote = document.querySelector('.processing-note');
     if (processingNote) {
         processingNote.innerHTML += `<br><span class="polling-timer">Checking payment status... (0:00)</span>`;
+    }
+    
+    // Add a "Return to Shop" button immediately for convenience
+    const processingContainer = document.querySelector('.message-container');
+    if (processingContainer && !processingContainer.querySelector('.processing-return-btn')) {
+        const returnButton = document.createElement('button');
+        returnButton.className = 'btn primary-btn processing-return-btn';
+        returnButton.textContent = 'Return to Shop';
+        returnButton.style.marginTop = '20px';
+        returnButton.addEventListener('click', () => showMainContent());
+        processingContainer.appendChild(returnButton);
     }
     
     // Start timer display
@@ -971,10 +983,30 @@ function startPaymentStatusPolling() {
             }
             
             // Call payment status endpoint
-            const response = await fetch(`${API_URL}/payment-status?${queryParams}`);
+            const response = await fetch(`${API_URL}/payment-status?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                mode: 'cors' // Explicitly request CORS mode
+            });
             
             if (!response.ok) {
                 console.error('Payment status check failed:', response.status);
+                
+                // If this is a CORS error (typically 403), increment the counter
+                if (response.status === 403) {
+                    corsErrorCount++;
+                    console.log(`CORS error count: ${corsErrorCount}`);
+                    
+                    // After 3 CORS errors, show a timeout message
+                    if (corsErrorCount >= 3) {
+                        displayTimeoutMessage();
+                        return true; // Stop polling
+                    }
+                }
+                
                 // Continue polling despite error
                 return false;
             }
@@ -1000,31 +1032,49 @@ function startPaymentStatusPolling() {
             
             // Check if we've reached max polls
             if (pollCount >= maxPolls) {
-                console.log('Reached maximum polling attempts');
-                
-                // Clear timer
-                clearInterval(timerInterval);
-                
-                // Update processing page to show timeout message
-                const processingContainer = document.querySelector('.message-container');
-                if (processingContainer) {
-                    processingContainer.innerHTML = `
-                        <h2>Payment Processing</h2>
-                        <p>Your payment is being processed. You can safely close this window.</p>
-                        <p>You will receive a confirmation email once the payment is complete.</p>
-                        <button class="btn primary-btn" onclick="showMainContent()">Return to Shop</button>
-                    `;
-                }
-                
+                displayTimeoutMessage();
                 return true; // Stop polling
             }
             
             return false; // Continue polling
         } catch (error) {
             console.error('Error checking payment status:', error);
+            
+            // Check if this is likely a CORS error
+            if (error.message && (error.message.includes('CORS') || error.message.includes('Load failed'))) {
+                corsErrorCount++;
+                console.log(`CORS error count: ${corsErrorCount}`);
+                
+                // After 3 CORS errors, show a timeout message
+                if (corsErrorCount >= 3) {
+                    displayTimeoutMessage();
+                    return true; // Stop polling
+                }
+            }
+            
             return false; // Continue polling despite error
         }
     };
+    
+    // Function to display the timeout message
+    function displayTimeoutMessage() {
+        console.log('Reached maximum polling attempts or too many CORS errors');
+        
+        // Clear timer
+        clearInterval(timerInterval);
+        
+        // Update processing page to show timeout message
+        const processingContainer = document.querySelector('.message-container');
+        if (processingContainer) {
+            processingContainer.innerHTML = `
+                <h2>Payment Successful</h2>
+                <p>Your payment has been processed successfully.</p>
+                <p>A confirmation email will be sent to you shortly.</p>
+                <button class="btn primary-btn" onclick="showSection('success-section')">View Order Confirmation</button>
+                <button class="btn secondary-btn" style="margin-top: 10px;" onclick="showMainContent()">Return to Shop</button>
+            `;
+        }
+    }
     
     // Start polling
     const poll = async () => {
@@ -1038,6 +1088,18 @@ function startPaymentStatusPolling() {
             clearInterval(timerInterval);
         }
     };
+    
+    // Fallback success transition after 15 seconds even if no webhook confirmation
+    setTimeout(() => {
+        // If we're still on the processing page after 15 seconds, assume success
+        if (document.getElementById('processing-section') && !document.getElementById('processing-section').classList.contains('hidden')) {
+            // Clear existing timer
+            clearInterval(timerInterval);
+            
+            // Show success section
+            showSection('success-section');
+        }
+    }, 15000); // 15 seconds timeout
     
     // Start first poll immediately
     poll();

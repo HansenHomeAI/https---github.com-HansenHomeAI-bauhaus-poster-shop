@@ -119,13 +119,13 @@ class BackendStack(Stack):
             }
         )
 
-        # Create API Gateway with CORS enabled
+        # Create API Gateway with CORS enabled - specify hansenhomeai.github.io
         api = apigw.RestApi(
             self, "PosterShopApi",
             rest_api_name="Poster Shop API",
             description="API for the Bauhaus Poster Shop",
             default_cors_preflight_options=apigw.CorsOptions(
-                allow_origins=["*"],
+                allow_origins=["https://hansenhomeai.github.io"],
                 allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["*"],
                 allow_credentials=False,
@@ -141,7 +141,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
@@ -220,7 +220,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
@@ -259,7 +259,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET'"
                 }
