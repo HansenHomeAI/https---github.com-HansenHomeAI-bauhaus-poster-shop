@@ -52,9 +52,11 @@ const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
 // Initialize Stripe
 let stripe
 try {
-  // Initialize Stripe with your actual TEST publishable key and specify the newer API version
+  // Initialize Stripe with your actual TEST publishable key and stable API version
   stripe = Stripe('pk_test_51PbnbRRut3hoXCRuvAFtiAxWeHMKZM6fp3E5kHmdUWZM0NCB22aq35S0cS74vmDoPwOq7BLbUmNqUZslSuhJM4bH00aXzK4Rr7', {
-    apiVersion: '2025-03-31.basil'
+    apiVersion: '2023-10-16', // Using stable API version
+    stripeAccount: null, // Ensure no connected account is being used
+    locale: 'en' // Specify locale
   });
   console.log('[DEBUG] Stripe initialized:', stripe); // Added log
 } catch (error) {
@@ -506,25 +508,44 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         };
 
         const paymentElementOptions = {
-            layout: "tabs",
-            paymentMethodOrder: ['card', 'apple_pay', 'google_pay']
+            layout: {
+                type: 'tabs',
+                defaultCollapsed: false,
+            },
+            fields: {
+                billingDetails: {
+                    email: 'auto'
+                }
+            },
+            paymentMethodOrder: ['card']
         };
 
         // Initialize Stripe Elements with error handling
         let elements;
         try {
+            // Log the client secret format for debugging
+            console.log('[DEBUG] Client Secret format check:', {
+                length: clientSecret.length,
+                startsWithPi: clientSecret.startsWith('pi_'),
+                hasUnderscoreSecret: clientSecret.includes('_secret_')
+            });
+            
             elements = stripe.elements({
                 appearance,
-                clientSecret,
-                // Add API version to ensure Elements compatibility with 2025-03-31.basil
-                apiVersion: '2025-03-31.basil'
+                clientSecret
             });
 
             const paymentElement = elements.create("payment", paymentElementOptions);
+            
+            // Add detailed logging for element events
+            paymentElement.on('ready', function(event) {
+                console.log('[DEBUG] Payment element ready:', event);
+            });
+            
             paymentElement.on('loaderror', (event) => {
                 console.error('Payment element loading error:', event);
                 const messageContainer = document.querySelector("#payment-message");
-                messageContainer.textContent = "Failed to load payment form. Please refresh and try again.";
+                messageContainer.textContent = "Failed to load payment form: " + (event.error?.message || "Unknown error");
                 messageContainer.classList.remove("hidden");
                 setLoading(false);
             });
