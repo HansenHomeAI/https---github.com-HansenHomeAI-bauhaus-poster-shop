@@ -143,6 +143,23 @@ class BackendStack(Stack):
             apigw.LambdaIntegration(process_webhook)
         )
 
+        # Add stripe test endpoint
+        stripe_test_lambda = _lambda.Function(
+            self, 'StripeTest',
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            code=_lambda.Code.from_asset('backend'),
+            handler='stripe_test.handler',
+            environment={
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key')
+            }
+        )
+        
+        stripe_test = api.root.add_resource("stripe-test")
+        stripe_test.add_method(
+            "GET",
+            apigw.LambdaIntegration(stripe_test_lambda)
+        )
+
         prodigi_webhook = api.root.add_resource("prodigi-webhook")
         prodigi_webhook.add_method(
             "POST",

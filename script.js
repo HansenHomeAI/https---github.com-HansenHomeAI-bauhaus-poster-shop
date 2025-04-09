@@ -402,9 +402,13 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         return;
     }
 
+    // Save cart items to localStorage for processing
+    localStorage.setItem('cartItems', JSON.stringify(cart));
+
     try {
         // Added log before using stripe
         console.log('[DEBUG] Value of stripe before stripe.elements call:', stripe);
+        console.log('[DEBUG] Using publishable key:', 'pk_test_51PbnbRRut3hoXCRuvAFtiAxWeHMKZM6fp3E5kHmdUWZM0NCB22aq35S0cS74vmDoPwOq7BLbUmNqUZslSuhJM4bH00aXzK4Rr7');
 
         const response = await fetch(`${API_URL}/checkout`, {
             method: 'POST',
@@ -412,7 +416,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                items: cartItems,
+                items: cart,
                 customerEmail: localStorage.getItem('customerEmail')
             })
         });
@@ -628,4 +632,52 @@ function setLoading(isLoading) {
 
 // Initialize with main content visible
 showMainContent();
+
+// Function to test Stripe key match
+async function testStripeKeyMatch() {
+    try {
+        // Test frontend Stripe key
+        console.log('[STRIPE TEST] Testing frontend Stripe key...');
+        const frontendAccount = await stripe.customers.retrieve('cus_test');
+        console.log('[STRIPE TEST] Frontend error is expected, just checking account access');
+    } catch (err) {
+        // Expected error for non-existent customer, but we'll get the error details
+        console.log('[STRIPE TEST] Frontend Stripe account:', err.message);
+        // Look for account identifier in the error message
+        const accountMatch = err.message.match(/acct_([\w\d]+)/);
+        if (accountMatch) {
+            console.log('[STRIPE TEST] Frontend account ID hint:', accountMatch[0]);
+        }
+    }
+    
+    // Now test the backend
+    try {
+        console.log('[STRIPE TEST] Testing backend Stripe key...');
+        const response = await fetch(`${API_URL}/stripe-test`);
+        const data = await response.json();
+        console.log('[STRIPE TEST] Backend Stripe account:', data);
+        
+        if (data.success) {
+            alert(`Stripe Test Results:\nFrontend publishable key: pk_test_51Pbnb...\nBackend account: ${data.account_id}`);
+        } else {
+            alert(`Stripe Test Error:\n${data.error}`);
+        }
+    } catch (err) {
+        console.error('[STRIPE TEST] Backend test error:', err);
+        alert(`Stripe test endpoint error: ${err.message}`);
+    }
+}
+
+// Only for debugging - call this manually in console if needed
+// testStripeKeyMatch();
+
+// Add a keyboard shortcut to test Stripe keys (Shift+D)
+document.addEventListener('keydown', function(event) {
+    // Check if we're on the checkout page
+    const checkoutSection = document.getElementById('checkout-section');
+    if (event.key === 'D' && event.shiftKey && !checkoutSection.classList.contains('hidden')) {
+        console.log('[DEBUG] Running Stripe key test');
+        testStripeKeyMatch();
+    }
+});
 

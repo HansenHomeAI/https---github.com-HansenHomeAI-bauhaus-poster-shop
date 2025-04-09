@@ -9,7 +9,11 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Initialize Stripe with your secret key
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
+stripe_secret_key = os.environ.get("STRIPE_SECRET_KEY", "DEFAULT_NOT_SET")
+# Log the first 8 characters of the secret key (safe to log part of it)
+logger.info(f"Using Stripe secret key: {stripe_secret_key[:8]}...")
+
+stripe.api_key = stripe_secret_key
 # Use a stable API version that matches the frontend
 stripe.api_version = "2023-10-16"
 
@@ -57,6 +61,8 @@ def handler(event, context):
 
         # Calculate total amount
         total_amount = sum(int(float(item.get("price")) * 100) * item.get("quantity", 1) for item in items)
+        
+        logger.info(f"Creating PaymentIntent with amount: {total_amount}, using API version: {stripe.api_version}")
 
         # Create a PaymentIntent
         payment_intent = stripe.PaymentIntent.create(
@@ -71,7 +77,8 @@ def handler(event, context):
             }
         )
         
-        logger.info("Successfully created PaymentIntent: %s", payment_intent.id)
+        logger.info("Successfully created PaymentIntent: %s with client_secret starting with %s", 
+                   payment_intent.id, payment_intent.client_secret[:15])
         
         return {
             "statusCode": 200,
