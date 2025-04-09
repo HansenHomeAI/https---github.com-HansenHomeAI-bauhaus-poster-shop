@@ -243,26 +243,23 @@ function updateCart() {
         <div class="email-validation-message">Please enter a valid email address</div>
       </div>
     `;
-    // Insert email input after cart items but before total/checkout button
-    const cartSidebarContent = document.querySelector('.cart-sidebar-content');
-    cartSidebarContent.insertBefore(emailContainer, cartTotal.parentElement);
-
+    cartItems.insertAdjacentElement('afterend', emailContainer);
+    
     // Enable/disable checkout button based on email validity
     const emailInput = emailContainer.querySelector('#cart-email');
     const validationMessage = emailContainer.querySelector('.email-validation-message');
-    const checkoutBtn = document.getElementById('checkout-btn');
-
+    
     emailInput.addEventListener('input', () => {
       const isValid = emailInput.checkValidity();
       checkoutBtn.disabled = !isValid;
       validationMessage.style.opacity = isValid ? '0' : '1';
       emailContainer.classList.toggle('invalid', !isValid);
-
+      
       if (isValid) {
         localStorage.setItem('customerEmail', emailInput.value);
       }
     });
-
+    
     // Initially disable checkout button
     checkoutBtn.disabled = true;
   } else if (cart.length === 0 && emailContainer) {
@@ -397,14 +394,8 @@ function showSection(sectionId) {
 // Update checkout button click handler
 document.getElementById('checkout-btn').addEventListener('click', async () => {
     const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
-    const customerEmail = localStorage.getItem('customerEmail'); // Get email here
-
     if (cartItems.length === 0) {
         alert('Your cart is empty');
-        return;
-    }
-    if (!customerEmail) { // Also check if email exists
-        alert('Please enter your email address in the cart.');
         return;
     }
 
@@ -419,19 +410,12 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             },
             body: JSON.stringify({
                 items: cartItems,
-                customerEmail: customerEmail // Use the retrieved email
+                customerEmail: localStorage.getItem('customerEmail')
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-
         const { clientSecret } = await response.json();
 
-        // --- Temporarily Commented Out Order Summary --- 
-        /*
         // Display order summary in checkout page
         const orderSummarySection = document.createElement('div');
         orderSummarySection.classList.add('order-summary-section');
@@ -459,7 +443,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             </div>
             <div class="order-email">
                 <span>Order confirmation will be sent to:</span>
-                <span class="customer-email">${customerEmail}</span> // Use retrieved email
+                <span class="customer-email">${localStorage.getItem('customerEmail')}</span>
             </div>
         </div>`;
         
@@ -467,13 +451,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         
         // Insert order summary before payment element
         const paymentElementContainer = document.querySelector("#payment-element");
-        if (paymentElementContainer && paymentElementContainer.parentElement) {
-             paymentElementContainer.parentElement.insertBefore(orderSummarySection, paymentElementContainer);
-        } else {
-            console.error("Could not find payment element container to insert order summary.")
-        }
-        */
-        // --- End of Temporarily Commented Out Order Summary --- 
+        paymentElementContainer.parentElement.insertBefore(orderSummarySection, paymentElementContainer);
 
         // Create payment element with expanded payment method options
         const appearance = {
