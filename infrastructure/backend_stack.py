@@ -147,6 +147,14 @@ class BackendStack(Stack):
         
         # Add SES permissions to the webhook Lambda
         process_webhook.add_to_role_policy(ses_policy_statement)
+        
+        # Add permissions to invoke the Prodigi Order Lambda function
+        lambda_invoke_policy = iam.PolicyStatement(
+            effect=iam.Effect.ALLOW,
+            actions=["lambda:InvokeFunction"],
+            resources=[prodigi_order_lambda.function_arn]
+        )
+        process_webhook.add_to_role_policy(lambda_invoke_policy)
 
         # Prodigi Webhook Lambda
         prodigi_webhook_lambda = _lambda.Function(
