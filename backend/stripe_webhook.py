@@ -239,11 +239,16 @@ def handler(event, context):
             if prodigi_lambda_name:
                 logger.info(f"Invoking Prodigi order processing for order: {order_id} using function: {prodigi_lambda_name}")
                 
+                # Make sure we include the items from the original order (important for print fulfillment)
+                items = current_order.get("items", [])
+                logger.info(f"Including order items in Prodigi lambda payload: {items}")
+                
                 invoke_payload = {
                     "order_id": order_id,
                     "client_id": client_id,
                     "job_id": job_id,
-                    "payment_intent": payment_intent
+                    "payment_intent": payment_intent,
+                    "items": items
                 }
                 
                 try:
