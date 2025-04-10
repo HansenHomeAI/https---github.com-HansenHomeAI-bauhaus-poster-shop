@@ -59,9 +59,6 @@ def handler(event, context):
             
         # Extract order items
         items = order.get("items", [])
-        logger.info(f"Initial items value type: {type(items).__name__}, value: {items}")
-        
-        # Handle different item formats
         if isinstance(items, str):
             try:
                 items = json.loads(items)
@@ -70,44 +67,45 @@ def handler(event, context):
                 logger.error(f"Error parsing items JSON: {str(e)}")
                 items = []
                 
-        # If items not found in order, check the event payload
-        if not items and event.get("items"):
-            event_items = event.get("items")
-            logger.info(f"Using items from event payload, type: {type(event_items).__name__}, value: {event_items}")
-            
-            # Handle event items that might also be a JSON string
-            if isinstance(event_items, str):
-                try:
-                    items = json.loads(event_items)
-                    logger.info(f"Parsed event items from JSON string: {json.dumps(items, default=str)}")
-                except Exception as e:
-                    logger.error(f"Error parsing event items JSON: {str(e)}")
-                    items = []
-            else:
-                items = event_items
-                
         if not items:
             logger.error(f"No items found in order {order_id}")
-            # For testing, create a default item if no items are found
+            # For orders without items, create a default item
+            # This is a fallback for orders created before the fix
             items = [{
-                "id": "default-item",
-                "name": "Default Poster",
-                "price": "50.00",
+                "id": "default",
+                "name": "Bauhaus Poster",
+                "price": order.get("amount_paid", 0) / 100 if order.get("amount_paid") else 50,
                 "quantity": 1
             }]
-            logger.info(f"Created default test item: {json.dumps(items, default=str)}")
+            logger.info(f"Created default item for order {order_id}: {json.dumps(items, default=str)}")
         
         # Build the Prodigi order payload
         prodigi_items = []
         for item in items:
-            prodigi_items.append({
+            prodigi_item = {
                 "sku": "GLOBAL-POSTER-40x30",  # This should match a valid Prodigi SKU
                 "quantity": item.get("quantity", 1),
                 "sizing": "cover",
                 "attributes": {
                     "color": "white"
                 }
-            })
+            }
+            
+            # Add the image URL if it exists in the item
+            if "imageUrl" in item:
+                prodigi_item["assets"] = [{
+                    "printArea": "default",
+                    "url": item["imageUrl"]
+                }]
+            else:
+                # Fallback image URL for older orders
+                poster_id = item.get("id", "default")
+                prodigi_item["assets"] = [{
+                    "printArea": "default",
+                    "url": f"https://bauhaus-poster-gallery.s3.us-west-2.amazonaws.com/poster-{poster_id}.jpg"
+                }]
+            
+            prodigi_items.append(prodigi_item)
             
         prodigi_payload = {
             "shippingMethod": "GLOBAL_ECONOMY",

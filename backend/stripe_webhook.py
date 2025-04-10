@@ -210,16 +210,34 @@ def handler(event, context):
             get_response = table.get_item(Key={"order_id": order_id})
             current_order = get_response.get("Item", {})
             
+            # Create update expression to preserve items
+            update_expression = "SET payment_status = :payment_status, #order_status = :order_status, updated_at = :time, amount_paid = :amount"
+            expression_values = {
+                ":payment_status": "paid",
+                ":order_status": "PAYMENT_COMPLETE",
+                ":time": current_time,
+                ":amount": amount_total
+            }
+            
+            # If items exist in the current order, preserve them
+            if "items" in current_order:
+                update_expression += ", items = :items"
+                expression_values[":items"] = current_order["items"]
+            
+            # Preserve client_id and job_id if they exist
+            if "client_id" in current_order:
+                update_expression += ", client_id = :client_id"
+                expression_values[":client_id"] = current_order["client_id"]
+                
+            if "job_id" in current_order:
+                update_expression += ", job_id = :job_id"
+                expression_values[":job_id"] = current_order["job_id"]
+            
             # Update order status in DynamoDB
             update_response = table.update_item(
                 Key={"order_id": order_id},
-                UpdateExpression="SET payment_status = :payment_status, #order_status = :order_status, updated_at = :time, amount_paid = :amount",
-                ExpressionAttributeValues={
-                    ":payment_status": "paid",
-                    ":order_status": "PAYMENT_COMPLETE",
-                    ":time": current_time,
-                    ":amount": amount_total
-                },
+                UpdateExpression=update_expression,
+                ExpressionAttributeValues=expression_values,
                 ExpressionAttributeNames={
                     "#order_status": "status"
                 },
@@ -239,16 +257,11 @@ def handler(event, context):
             if prodigi_lambda_name:
                 logger.info(f"Invoking Prodigi order processing for order: {order_id} using function: {prodigi_lambda_name}")
                 
-                # Make sure we include the items from the original order (important for print fulfillment)
-                items = current_order.get("items", [])
-                logger.info(f"Including order items in Prodigi lambda payload: {items}")
-                
                 invoke_payload = {
                     "order_id": order_id,
                     "client_id": client_id,
                     "job_id": job_id,
-                    "payment_intent": payment_intent,
-                    "items": items
+                    "payment_intent": payment_intent
                 }
                 
                 try:
