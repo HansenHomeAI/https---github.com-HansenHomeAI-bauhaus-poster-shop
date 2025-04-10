@@ -22,7 +22,7 @@ ses_client = boto3.client('ses')
 
 # Set your Stripe secret and webhook secret
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
-stripe.api_version = "2023-10-16"  # Use a stable API version that matches the frontend
+stripe.api_version = "2025-03-31"  # Use a stable API version that matches Stripe webhook configuration
 endpoint_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
 # Email configuration

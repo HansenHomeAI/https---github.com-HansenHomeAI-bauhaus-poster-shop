@@ -16,8 +16,8 @@ stripe_secret_key = os.environ.get("STRIPE_SECRET_KEY", "DEFAULT_NOT_SET")
 logger.info(f"Using Stripe secret key: {stripe_secret_key[:8]}...")
 
 stripe.api_key = stripe_secret_key
-# Use a stable API version that matches the frontend
-stripe.api_version = "2023-10-16"
+# Use a stable API version that matches the webhook configuration
+stripe.api_version = "2025-03-31"
 
 # Initialize DynamoDB
 dynamodb = boto3.resource("dynamodb")
