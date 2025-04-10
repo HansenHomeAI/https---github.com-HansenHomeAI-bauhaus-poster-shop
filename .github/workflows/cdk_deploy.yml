@@ -38,37 +38,12 @@ jobs:
 
       - name: CDK Deploy
         run: |
-          # Default values in case secrets are not available
-          STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY }}"
-          STRIPE_TEST_SECRET_KEY="${{ secrets.STRIPE_TEST_SECRET_KEY }}"
-          STRIPE_WEBHOOK_SECRET="${{ secrets.STRIPE_WEBHOOK_SECRET }}"
-          PRODIGI_SANDBOX_API_KEY="${{ secrets.PRODIGI_SANDBOX_API_KEY }}"
-          EMAIL_SENDER="${{ secrets.EMAIL_SENDER }}"
-          
-          # Use dummy values if secrets are not set
-          if [ -z "$STRIPE_SECRET_KEY" ]; then
-            STRIPE_SECRET_KEY="sk_dummy_key"
-          fi
-          if [ -z "$STRIPE_TEST_SECRET_KEY" ]; then
-            STRIPE_TEST_SECRET_KEY="sk_test_dummy_key"
-          fi
-          if [ -z "$STRIPE_WEBHOOK_SECRET" ]; then
-            STRIPE_WEBHOOK_SECRET="whsec_dummy_key"
-          fi
-          if [ -z "$PRODIGI_SANDBOX_API_KEY" ]; then
-            PRODIGI_SANDBOX_API_KEY="prod_sk_dummy_key"
-          fi
-          if [ -z "$EMAIL_SENDER" ]; then
-            EMAIL_SENDER="hello@hansenhome.ai"
-          fi
-          
-          # Deploy with context values
           cdk deploy --require-approval never \
-            -c stripe_secret_key=$STRIPE_SECRET_KEY \
-            -c stripe_test_secret_key=$STRIPE_TEST_SECRET_KEY \
-            -c stripe_webhook_secret=$STRIPE_WEBHOOK_SECRET \
-            -c prodigi_sandbox_api_key=$PRODIGI_SANDBOX_API_KEY \
-            -c email_sender=$EMAIL_SENDER \
+            -c stripe_test_secret_key=${{ secrets.STRIPE_TEST_SECRET_KEY }} \
+            -c stripe_secret_key=${{ secrets.STRIPE_SECRET_KEY }} \
+            -c stripe_webhook_secret=${{ secrets.STRIPE_WEBHOOK_SECRET }} \
+            -c prodigi_sandbox_api_key=${{ secrets.PRODIGI_SANDBOX_API_KEY }} \
+            -c email_sender=${{ secrets.EMAIL_SENDER }} \
             -c ses_sender_email=hello@hansenhome.ai \
             -c success_url='https://hansenhomeai.github.io/success' \
             -c cancel_url='https://hansenhomeai.github.io/cancel' 
