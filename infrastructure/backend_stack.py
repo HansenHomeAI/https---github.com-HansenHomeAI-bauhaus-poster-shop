@@ -165,19 +165,19 @@ class BackendStack(Stack):
             }
         )
 
-        # Create API Gateway with CORS enabled - allow all origins
+        # Define CORS options
+        cors_options = apigw.CorsOptions(
+            allow_origins=["https://hansenhomeai.github.io"],
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=["*"]
+        )
+
+        # Create API Gateway
         api = apigw.RestApi(
-            self, "PosterShopApi",
-            rest_api_name="Poster Shop API",
-            description="API for the Bauhaus Poster Shop",
-            default_cors_preflight_options=apigw.CorsOptions(
-                allow_origins=["*"],
-                allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH", "HEAD"],
-                allow_headers=["*"],  # Use wildcard to allow all headers
-                status_code=200,  # Use 200 status code instead of default 204
-                allow_credentials=False,
-                max_age=Duration.days(1)
-            )
+            self, 'PosterShopApi',
+            rest_api_name='BauhausPosterShopAPI',
+            description='API for Bauhaus Poster Shop',
+            default_cors_preflight_options=cors_options
         )
 
         # Add checkout endpoint
@@ -188,7 +188,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
@@ -270,7 +270,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
@@ -309,7 +309,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'*'",
+                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET'"
                 }

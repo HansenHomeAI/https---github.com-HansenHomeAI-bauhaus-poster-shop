@@ -183,4 +183,73 @@ def handler(event, context):
                 'Access-Control-Allow-Methods': 'OPTIONS,GET'
             },
             'body': json.dumps({'error': f'Error checking status: {str(e)}'})
+        }
+
+def get_payment_status(event, context):
+    try:
+        # Extract order ID from the event
+        order_id = event['pathParameters']['order_id']
+        
+        # Get the orders table name from environment variable
+        table_name = os.environ['ORDERS_TABLE_NAME']
+        
+        # Create DynamoDB resource and get reference to the table
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.Table(table_name)
+        
+        # Get the order from the table
+        response = table.get_item(
+            Key={
+                'order_id': order_id
+            }
+        )
+        
+        # Check if the order exists
+        if 'Item' not in response:
+            return {
+                'statusCode': 404,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                    'Access-Control-Allow-Headers': '*',
+                    'Access-Control-Allow-Methods': 'GET,OPTIONS'
+                },
+                'body': json.dumps({
+                    'status': 'error',
+                    'message': 'Order not found'
+                })
+            }
+        
+        # Get the order status
+        order = response['Item']
+        status = order.get('status', 'UNKNOWN')
+        
+        # Return the order status
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Allow-Methods': 'GET,OPTIONS'
+            },
+            'body': json.dumps({
+                'order_id': order_id,
+                'status': status
+            })
+        }
+    except Exception as e:
+        logger.error(f"Error getting payment status: {str(e)}")
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': 'https://hansenhomeai.github.io',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Allow-Methods': 'GET,OPTIONS'
+            },
+            'body': json.dumps({
+                'status': 'error',
+                'message': 'Internal server error'
+            })
         } 
