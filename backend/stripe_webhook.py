@@ -131,10 +131,16 @@ def handler(event, context):
     sig_header = event["headers"].get("Stripe-Signature")
     
     logger.info(f"Using webhook secret starting with: {endpoint_secret[:4] if endpoint_secret else 'MISSING'}")
+    logger.info(f"Webhook raw payload type: {type(payload)}")
+    logger.info(f"Webhook payload first 50 chars: {payload[:50] if payload else 'EMPTY'}")
     
     try:
+        # If the payload is a string, use it directly, otherwise convert it to a string
+        payload_str = payload if isinstance(payload, str) else json.dumps(payload)
+        
+        logger.info(f"Attempting to construct Stripe event with payload length: {len(payload_str)}")
         event_stripe = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret
+            payload_str, sig_header, endpoint_secret
         )
         logger.info(f"Webhook event type: {event_stripe['type']}")
         logger.info(f"Webhook event contents: {json.dumps(event_stripe, default=str)}")
