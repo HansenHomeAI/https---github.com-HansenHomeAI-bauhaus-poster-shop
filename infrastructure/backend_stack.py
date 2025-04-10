@@ -32,7 +32,16 @@ class BackendStack(Stack):
             self, "OrderCleanupLambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="order_cleanup.handler",
-            code=_lambda.Code.from_asset("backend"),
+            code=_lambda.Code.from_asset(
+                "backend",
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
             },
@@ -54,7 +63,16 @@ class BackendStack(Stack):
         create_checkout_session = _lambda.Function(
             self, 'CreateCheckoutSession',
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset('backend'),
+            code=_lambda.Code.from_asset(
+                'backend',
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             handler='checkout_session.handler',
             environment={
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_secret_key') or self.node.try_get_context('stripe_test_secret_key') or "sk_placeholder_value",
@@ -104,7 +122,16 @@ class BackendStack(Stack):
         process_webhook = _lambda.Function(
             self, 'ProcessWebhook',
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset('backend'),
+            code=_lambda.Code.from_asset(
+                'backend',
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             handler='stripe_webhook.handler',
             environment={
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_secret_key') or self.node.try_get_context('stripe_test_secret_key') or "sk_placeholder_value",
@@ -219,7 +246,16 @@ class BackendStack(Stack):
         stripe_test_lambda = _lambda.Function(
             self, 'StripeTest',
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset('backend'),
+            code=_lambda.Code.from_asset(
+                'backend',
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             handler='stripe_test.handler',
             environment={
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key') or "sk_placeholder_value"
@@ -249,7 +285,16 @@ class BackendStack(Stack):
         payment_success_lambda = _lambda.Function(
             self, 'PaymentSuccessLambda',
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset('backend'),
+            code=_lambda.Code.from_asset(
+                'backend',
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             handler='payment_success.handler',
             environment={
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key') or self.node.try_get_context('stripe_secret_key') or "sk_placeholder_value",
@@ -294,7 +339,16 @@ class BackendStack(Stack):
         payment_status_lambda = _lambda.Function(
             self, 'PaymentStatusLambda',
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset('backend'),
+            code=_lambda.Code.from_asset(
+                'backend',
+                bundling={
+                    "image": _lambda.Runtime.PYTHON_3_9.bundling_image,
+                    "command": [
+                        "bash", "-c",
+                        "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ]
+                }
+            ),
             handler='payment_status.handler',
             environment={
                 'ORDERS_TABLE': orders_table.table_name
