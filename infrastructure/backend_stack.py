@@ -57,7 +57,7 @@ class BackendStack(Stack):
             code=_lambda.Code.from_asset('backend'),
             handler='checkout_session.handler',
             environment={
-                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_secret_key') or self.node.try_get_context('stripe_test_secret_key') or 'sk_dummy_key',
                 'SUCCESS_URL': self.node.try_get_context('success_url'),
                 'CANCEL_URL': self.node.try_get_context('cancel_url'),
                 'ORDERS_TABLE': orders_table.table_name
@@ -107,9 +107,9 @@ class BackendStack(Stack):
             code=_lambda.Code.from_asset('backend'),
             handler='stripe_webhook.handler',
             environment={
-                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_secret_key') or self.node.try_get_context('stripe_test_secret_key'),
-                'STRIPE_WEBHOOK_SECRET': self.node.try_get_context('stripe_webhook_secret'),
-                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_secret_key') or self.node.try_get_context('stripe_test_secret_key') or 'sk_dummy_key',
+                'STRIPE_WEBHOOK_SECRET': self.node.try_get_context('stripe_webhook_secret') or 'whsec_dummy_key',
+                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key') or 'prod_sk_dummy_key',
                 'ORDERS_TABLE': orders_table.table_name,
                 'SES_SENDER_EMAIL': self.node.try_get_context('ses_sender_email') or 'hello@hansenhome.ai',
                 'PRODIGI_ORDER_FUNCTION_NAME': prodigi_order_lambda.function_name,
@@ -222,7 +222,7 @@ class BackendStack(Stack):
             code=_lambda.Code.from_asset('backend'),
             handler='stripe_test.handler',
             environment={
-                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key')
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key') or 'sk_dummy_key'
             }
         )
         
@@ -252,8 +252,8 @@ class BackendStack(Stack):
             code=_lambda.Code.from_asset('backend'),
             handler='payment_success.handler',
             environment={
-                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
-                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key'),
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_secret_key') or self.node.try_get_context('stripe_test_secret_key') or 'sk_dummy_key',
+                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key') or 'prod_sk_dummy_key',
                 'ORDERS_TABLE': orders_table.table_name,
                 'SES_SENDER_EMAIL': self.node.try_get_context('ses_sender_email') or 'hello@hansenhome.ai'
             }
