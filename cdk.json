@@ -1,6 +1,8 @@
 {
   "app": "python app.py",
   "context": {
-    "ses_sender_email": "hello@hansenhome.ai"
+    "ses_sender_email": "hello@hansenhome.ai",
+    "stripe_webhook_secret": "whsec_nvRh6Aj0dZYxZ2ADfN50ejuZfW6siN32",
+    "stripe_secret_key": "PUT_YOUR_STRIPE_SECRET_KEY_HERE"
   }
 } 

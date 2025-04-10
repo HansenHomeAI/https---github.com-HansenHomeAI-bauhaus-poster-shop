@@ -107,13 +107,15 @@ class BackendStack(Stack):
             code=_lambda.Code.from_asset('backend'),
             handler='stripe_webhook.handler',
             environment={
-                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key'),
+                'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_secret_key') or self.node.try_get_context('stripe_test_secret_key'),
                 'STRIPE_WEBHOOK_SECRET': self.node.try_get_context('stripe_webhook_secret'),
-                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key'),
+                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
                 'ORDERS_TABLE': orders_table.table_name,
                 'SES_SENDER_EMAIL': self.node.try_get_context('ses_sender_email') or 'hello@hansenhome.ai',
-                'PRODIGI_ORDER_FUNCTION_NAME': prodigi_order_lambda.function_name
-            }
+                'PRODIGI_ORDER_FUNCTION_NAME': prodigi_order_lambda.function_name,
+                'LOG_LEVEL': 'DEBUG'
+            },
+            timeout=Duration.seconds(30)  # Give enough time to process the webhook
         )
         
         # Add SES permissions to the webhook Lambda

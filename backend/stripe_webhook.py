@@ -22,7 +22,7 @@ ses_client = boto3.client('ses')
 
 # Set your Stripe secret and webhook secret
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
-stripe.api_version = "2023-10-16"  # Use a stable API version that matches the frontend
+stripe.api_version = "2025-03-31"  # Updated to latest API version
 endpoint_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
 # Email configuration
@@ -126,16 +126,21 @@ def send_notification_email(order_data, payment_intent):
 
 def handler(event, context):
     logger.info("Received webhook event")
+    logger.info(f"Event contents: {json.dumps(event, default=str)}")
     payload = event.get("body", "")
     sig_header = event["headers"].get("Stripe-Signature")
+    
+    logger.info(f"Using webhook secret starting with: {endpoint_secret[:4] if endpoint_secret else 'MISSING'}")
     
     try:
         event_stripe = stripe.Webhook.construct_event(
             payload, sig_header, endpoint_secret
         )
         logger.info(f"Webhook event type: {event_stripe['type']}")
+        logger.info(f"Webhook event contents: {json.dumps(event_stripe, default=str)}")
     except Exception as e:
         logger.error(f"Webhook signature verification failed: {str(e)}")
+        logger.error(f"Received signature: {sig_header}")
         return {"statusCode": 400, "body": json.dumps({"error": "Invalid signature"})}
 
     if event_stripe["type"] == "payment_intent.succeeded":
