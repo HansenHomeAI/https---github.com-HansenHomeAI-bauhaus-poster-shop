@@ -213,12 +213,15 @@ def handler(event, context):
             # Update order status in DynamoDB
             update_response = table.update_item(
                 Key={"order_id": order_id},
-                UpdateExpression="SET payment_status = :status, status = :order_status, updated_at = :time, amount_paid = :amount",
+                UpdateExpression="SET payment_status = :payment_status, #order_status = :order_status, updated_at = :time, amount_paid = :amount",
                 ExpressionAttributeValues={
-                    ":status": "paid",
+                    ":payment_status": "paid",
                     ":order_status": "PAYMENT_COMPLETE",
                     ":time": current_time,
                     ":amount": amount_total
+                },
+                ExpressionAttributeNames={
+                    "#order_status": "status"
                 },
                 ReturnValues="ALL_NEW"
             )
