@@ -39,8 +39,16 @@ def send_notification_email(order_data, payment_intent):
         # Convert amount from cents to dollars with proper formatting
         amount_formatted = f"${(amount / 100):.2f}"
         
-        # Get items if available
-        items = order_data.get('items', [])
+        # Get items if available - handle case where items is a JSON string
+        items_data = order_data.get('items', [])
+        if isinstance(items_data, str):
+            try:
+                items = json.loads(items_data)
+            except:
+                items = []
+        else:
+            items = items_data
+            
         items_html = ""
         for item in items:
             name = item.get('name', 'Unknown item')
