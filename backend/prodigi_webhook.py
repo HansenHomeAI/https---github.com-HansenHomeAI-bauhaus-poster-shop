@@ -8,7 +8,9 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(os.environ.get("ORDERS_TABLE"))
+orders_table_name = os.environ.get("ORDERS_TABLE")
+logger.info(f"Using orders table from environment: {orders_table_name}")
+table = dynamodb.Table(orders_table_name)
 ses = boto3.client("ses")
 
 def handler(event, context):
