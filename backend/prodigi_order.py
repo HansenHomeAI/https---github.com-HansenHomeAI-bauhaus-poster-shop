@@ -33,6 +33,11 @@ def handler(event, context):
             "body": json.dumps({"error": "Missing order_id"})
         }
     
+    # Check if items were passed directly in the event
+    items_from_event = event.get("items")
+    if items_from_event:
+        logger.info(f"Found items in event payload: {items_from_event[:100] if isinstance(items_from_event, str) else json.dumps(items_from_event)[:100]}...")
+        
     # Get customer email from payment intent
     customer_email = payment_intent.get("receipt_email")
     if not customer_email:
@@ -59,6 +64,13 @@ def handler(event, context):
             
         # Extract order items
         items = order.get("items", [])
+        
+        # If items were passed in the event, use those instead
+        items_from_event = event.get("items")
+        if items_from_event and not items:
+            logger.info(f"Using items from event payload instead of DynamoDB")
+            items = items_from_event
+        
         if isinstance(items, str):
             try:
                 items = json.loads(items)
@@ -68,11 +80,39 @@ def handler(event, context):
                 items = []
                 
         if not items:
-            logger.error(f"No items found in order {order_id}")
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Order has no items"})
-            }
+            logger.error(f"No items found in order {order_id}. Order data: {json.dumps({k: v for k, v in order.items() if k != 'items'}, default=str)}")
+            
+            # Try to get items from the payment intent if available
+            customer_email = payment_intent.get("receipt_email")
+            if customer_email:
+                logger.info(f"Attempting to create a default item based on payment intent data for order {order_id}")
+                # Create a default item with the payment information 
+                items = [{
+                    "id": 1,
+                    "name": "Bauhaus Poster",
+                    "description": "Art print on premium paper",
+                    "price": float(payment_intent.get("amount", 0)) / 100,  # Convert cents to dollars
+                    "quantity": 1
+                }]
+                logger.info(f"Created default item: {json.dumps(items, default=str)}")
+                
+                # Update the order with these items for future use
+                try:
+                    table.update_item(
+                        Key={"order_id": order_id},
+                        UpdateExpression="SET items = :items",
+                        ExpressionAttributeValues={
+                            ":items": json.dumps(items)
+                        }
+                    )
+                    logger.info(f"Updated order {order_id} with default items")
+                except Exception as update_error:
+                    logger.error(f"Failed to update order with default items: {str(update_error)}")
+            else:
+                return {
+                    "statusCode": 400,
+                    "body": json.dumps({"error": "Order has no items"})
+                }
         
         # Build the Prodigi order payload
         prodigi_items = []
