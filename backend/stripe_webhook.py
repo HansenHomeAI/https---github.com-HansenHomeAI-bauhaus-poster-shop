@@ -221,25 +221,47 @@ def handler(event, context):
             
             if not current_order:
                 logger.error(f"Order {order_id} not found in database")
-                return {
-                    "statusCode": 404, 
-                    "body": json.dumps({"error": f"Order {order_id} not found"})
+                
+                # Create a new order record since it's missing
+                current_order = {
+                    "order_id": order_id,
+                    "payment_intent_id": payment_intent.get("id"),
+                    "client_id": client_id or payment_intent.get("metadata", {}).get("client_id"),
+                    "job_id": job_id or payment_intent.get("metadata", {}).get("job_id"),
+                    "status": "PAYMENT_COMPLETE",
+                    "payment_status": "paid",
+                    "customer_email": payment_intent.get("receipt_email"),
+                    "amount": payment_intent.get("amount"),
+                    "amount_paid": amount_total,
+                    "created_at": current_time,
+                    "updated_at": current_time
                 }
                 
-            logger.info(f"Retrieved current order: {json.dumps(current_order, default=str)}")
-            
-            # Create a new order object with updated fields
-            updated_order = current_order.copy()
-            updated_order.update({
-                "payment_status": "paid",
-                "status": "PAYMENT_COMPLETE",
-                "updated_at": current_time,
-                "amount_paid": amount_total
-            })
+                # If we have an email but no items, create a default item for the order
+                # This allows the Prodigi processor to still create a poster
+                if not current_order.get("items") and payment_intent.get("receipt_email"):
+                    current_order["items"] = json.dumps([{
+                        "id": "default",
+                        "name": "Bauhaus Poster",
+                        "price": payment_intent.get("amount") / 100,
+                        "quantity": 1
+                    }])
+                
+                logger.info(f"Created new order record: {json.dumps(current_order, default=str)}")
+            else:
+                logger.info(f"Retrieved current order: {json.dumps(current_order, default=str)}")
+                
+                # Update existing order with payment info
+                current_order.update({
+                    "payment_status": "paid",
+                    "status": "PAYMENT_COMPLETE",
+                    "updated_at": current_time,
+                    "amount_paid": amount_total
+                })
             
             # Put the complete updated item back
             update_response = table.put_item(
-                Item=updated_order
+                Item=current_order
             )
             
             logger.info(f"Updated order status to PAYMENT_COMPLETE: {order_id}")

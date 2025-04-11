@@ -21,7 +21,8 @@ stripe.api_version = "2025-03-31"
 
 # Initialize DynamoDB
 dynamodb = boto3.resource("dynamodb")
-orders_table_name = os.environ.get("ORDERS_TABLE", "BauhausPosterShopOrders")
+orders_table_name = os.environ.get("ORDERS_TABLE", "OrdersTable")
+logger.info(f"Using orders table: {orders_table_name}")
 try:
     orders_table = dynamodb.Table(orders_table_name)
 except Exception as e:
@@ -88,7 +89,12 @@ def handler(event, context):
         # Store the pending order in DynamoDB
         current_time = int(time.time())
         try:
-            orders_table.put_item(
+            # First check if we can access the table at all
+            table_test = orders_table.scan(Limit=1)
+            logger.info(f"Table access test successful. Table exists and is accessible.")
+            
+            # Now attempt to store the order
+            put_response = orders_table.put_item(
                 Item={
                     'order_id': order_id,
                     'client_id': client_id,
@@ -102,10 +108,19 @@ def handler(event, context):
                     'expires_at': current_time + 900  # 15 minutes expiration
                 }
             )
-            logger.info(f"Stored pending order in DynamoDB: {order_id}")
+            logger.info(f"Stored pending order in DynamoDB: {order_id} with response: {json.dumps(put_response, default=str)}")
+            
+            # Verify the order was written by attempting to read it back
+            verify_response = orders_table.get_item(Key={'order_id': order_id})
+            if 'Item' in verify_response:
+                logger.info(f"Successfully verified order {order_id} exists in database")
+            else:
+                logger.error(f"Order {order_id} verification failed - could not read back from database")
+                
         except Exception as db_error:
             # Log error but continue - we can still create a PaymentIntent even if DB fails
             logger.error(f"Failed to store pending order in DynamoDB: {str(db_error)}")
+            logger.error(f"Table name being used: {orders_table_name}")
 
         # Create a PaymentIntent with the order information in metadata
         logger.info(f"Creating PaymentIntent with amount: {total_amount}, using API version: {stripe.api_version}")

@@ -134,6 +134,14 @@ def handler(event, context):
                 "body": json.dumps({"error": "Missing Prodigi API configuration"})
             }
         
+        logger.info(f"Sending order to Prodigi with API key: {prodigi_api_key[:4]}*****")
+        
+        # Validate the API key format
+        if prodigi_api_key.startswith("test") or prodigi_api_key.startswith("prod"):
+            logger.info("API key format appears valid")
+        else:
+            logger.warning(f"API key format may be invalid - does not start with 'test' or 'prod'")
+        
         # Send order to Prodigi
         headers = {
             "X-API-Key": prodigi_api_key,
@@ -141,7 +149,6 @@ def handler(event, context):
         }
         prodigi_url = "https://api.prodigi.com/v4.0/orders"
         
-        logger.info(f"Sending order to Prodigi with API key: {prodigi_api_key[:4]}*****")
         logger.info(f"Prodigi payload: {json.dumps(prodigi_payload, default=str)}")
         
         response = requests.post(prodigi_url, headers=headers, json=prodigi_payload)
@@ -185,6 +192,14 @@ def handler(event, context):
         else:
             error_message = f"Failed to create Prodigi order: {response.text}"
             logger.error(error_message)
+            
+            # Check for authentication issues
+            if response.status_code == 401:
+                logger.error("Authentication failed with Prodigi API. Please check your API key.")
+                
+                # Check the environment variable value directly
+                raw_api_key = os.environ.get("PRODIGI_API_KEY", "")
+                logger.info(f"Raw API key length: {len(raw_api_key)}, first/last chars: {raw_api_key[:2]}...{raw_api_key[-2:] if len(raw_api_key) > 2 else ''}")
             
             # Update the order with error status
             table.update_item(
