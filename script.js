@@ -50,9 +50,10 @@ const loadingOverlay = document.getElementById("loading-overlay")
 const loadingText = document.getElementById("loading-text")
 const emailInput = document.getElementById("email-input")
 
-// SteepleCo API endpoint - will be updated with the new SteepleCo API URL after deployment
-const API_URL = "https://h5w9p6vn2l.execute-api.us-west-2.amazonaws.com/prod"
-// Legacy API endpoint - DO NOT USE:
+// SteepleCo API endpoint
+const API_URL = "https://cy6e77329k.execute-api.us-west-2.amazonaws.com/prod"
+// Legacy API endpoints - DO NOT USE:
+// const API_URL = "https://h5w9p6vn2l.execute-api.us-west-2.amazonaws.com/prod"
 // const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
 
 // Initialize Stripe

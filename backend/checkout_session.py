@@ -17,7 +17,7 @@ logger.info(f"Using Stripe secret key: {stripe_secret_key[:8]}...")
 
 stripe.api_key = stripe_secret_key
 # Use a stable API version that matches the frontend
-stripe.api_version = "2023-10-16"
+stripe.api_version = "2025-03-31.basil"
 
 # Initialize DynamoDB
 dynamodb = boto3.resource("dynamodb")
