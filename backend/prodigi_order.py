@@ -13,7 +13,22 @@ logger.setLevel(logging.INFO)
 # Initialize AWS resources
 dynamodb = boto3.resource('dynamodb')
 orders_table_name = os.environ.get('ORDERS_TABLE', 'OrdersTable')
-table = dynamodb.Table(orders_table_name)
+logger.info(f"Using orders table: {orders_table_name}")
+
+# Log available environment variables to help debug (masking sensitive values)
+env_vars = {k: v[:4] + '****' if k.lower().find('key') >= 0 else v 
+          for k, v in os.environ.items()}
+logger.info(f"Environment variables: {json.dumps(env_vars, default=str)}")
+
+try:
+    # Test if the table exists
+    table = dynamodb.Table(orders_table_name)
+    table_details = table.meta.client.describe_table(TableName=orders_table_name)
+    logger.info(f"DynamoDB table found: {orders_table_name}, ARN: {table_details['Table']['TableArn']}")
+except Exception as e:
+    logger.error(f"Failed to connect to DynamoDB table: {str(e)}")
+    logger.error(f"Will try to continue anyway with table name: {orders_table_name}")
+    table = dynamodb.Table(orders_table_name)
 
 def handler(event, context):
     """
