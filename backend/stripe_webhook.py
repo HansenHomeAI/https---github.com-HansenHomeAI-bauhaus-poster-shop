@@ -13,6 +13,13 @@ from email.mime.multipart import MIMEMultipart
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# Custom JSON encoder to handle Decimal types
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
+
 # Initialize AWS resources
 dynamodb = boto3.resource("dynamodb")
 orders_table_name = os.environ.get("ORDERS_TABLE", "SteepleCo-Orders")
@@ -172,7 +179,7 @@ def handler(event, context):
             payload, sig_header, endpoint_secret
         )
         logger.info(f"Webhook event type: {event_stripe['type']}")
-        logger.info(f"Webhook event contents: {json.dumps(event_stripe, default=str)}")
+        logger.info(f"Webhook event contents: {json.dumps(event_stripe, cls=DecimalEncoder)}")
     except Exception as e:
         logger.error(f"Webhook signature verification failed: {str(e)}")
         logger.error(f"Received signature: {sig_header}")
@@ -187,10 +194,10 @@ def handler(event, context):
                 logger.info("Processing payment_intent.succeeded event despite signature failure")
                 event_stripe = payload_json
             else:
-                return {"statusCode": 400, "body": json.dumps({"error": "Invalid signature"})}
+                return {"statusCode": 400, "body": json.dumps({"error": "Invalid signature"}, cls=DecimalEncoder)}
         except Exception as parse_error:
             logger.error(f"Failed to parse payload as JSON: {str(parse_error)}")
-            return {"statusCode": 400, "body": json.dumps({"error": "Invalid signature"})}
+            return {"statusCode": 400, "body": json.dumps({"error": "Invalid signature"}, cls=DecimalEncoder)}
 
     if event_stripe["type"] == "payment_intent.succeeded":
         payment_intent = event_stripe["data"]["object"]
@@ -203,7 +210,7 @@ def handler(event, context):
         
         if not order_id:
             logger.error("Payment intent succeeded but no order_id in metadata")
-            return {"statusCode": 400, "body": json.dumps({"error": "Missing order_id"})}
+            return {"statusCode": 400, "body": json.dumps({"error": "Missing order_id"}, cls=DecimalEncoder)}
             
         logger.info(f"Processing successful payment for order: {order_id}, client: {client_id}, job: {job_id}")
         
@@ -221,7 +228,7 @@ def handler(event, context):
 
             if not current_order:
                 logger.error(f"Order {order_id} not found in DynamoDB. Unable to process.")
-                return {"statusCode": 404, "body": json.dumps({"error": f"Order {order_id} not found"})}
+                return {"statusCode": 404, "body": json.dumps({"error": f"Order {order_id} not found"}, cls=DecimalEncoder)}
             
             logger.info(f"Found order in DynamoDB: {order_id}")
             
@@ -270,7 +277,7 @@ def handler(event, context):
                     lambda_response = lambda_client.invoke(
                         FunctionName=prodigi_lambda_name,
                         InvocationType="Event",  # Asynchronous invocation
-                        Payload=json.dumps(invoke_payload)
+                        Payload=json.dumps(invoke_payload, cls=DecimalEncoder)
                     )
                     logger.info(f"Successfully invoked Prodigi Lambda. Response: {lambda_response}")
                 except Exception as lambda_err:
@@ -311,6 +318,6 @@ def handler(event, context):
                 
         except Exception as e:
             logger.error(f"Error updating order status: {str(e)}")
-            return {"statusCode": 500, "body": json.dumps({"error": f"Error processing payment: {str(e)}"})}
+            return {"statusCode": 500, "body": json.dumps({"error": f"Error processing payment: {str(e)}"}, cls=DecimalEncoder)}
 
-    return {"statusCode": 200, "body": json.dumps({"received": True})} 
+    return {"statusCode": 200, "body": json.dumps({"received": True}, cls=DecimalEncoder)} 
