@@ -41,6 +41,15 @@ def send_notification_email(order_data, payment_intent):
         
         # Get items if available
         items = order_data.get('items', [])
+        # Parse JSON items if they're stored as a string
+        if isinstance(items, str):
+            try:
+                items = json.loads(items)
+                logger.info(f"Parsed items for email from JSON string: {json.dumps(items, default=str)}")
+            except Exception as e:
+                logger.error(f"Error parsing items JSON for email: {str(e)}")
+                items = []
+                
         items_html = ""
         for item in items:
             name = item.get('name', 'Unknown item')
@@ -210,44 +219,30 @@ def handler(event, context):
             get_response = table.get_item(Key={"order_id": order_id})
             current_order = get_response.get("Item", {})
             
-            # Create update expression to preserve items
-            update_expression = "SET payment_status = :payment_status, #order_status = :order_status, updated_at = :time, amount_paid = :amount"
-            expression_values = {
-                ":payment_status": "paid",
-                ":order_status": "PAYMENT_COMPLETE",
-                ":time": current_time,
-                ":amount": amount_total
-            }
-            
-            # If items exist in the current order, preserve them
-            if "items" in current_order:
-                update_expression += ", items = :items"
-                expression_values[":items"] = current_order["items"]
-            
-            # Preserve client_id and job_id if they exist
-            if "client_id" in current_order:
-                update_expression += ", client_id = :client_id"
-                expression_values[":client_id"] = current_order["client_id"]
+            if not current_order:
+                logger.error(f"Order {order_id} not found in database")
+                return {
+                    "statusCode": 404, 
+                    "body": json.dumps({"error": f"Order {order_id} not found"})
+                }
                 
-            if "job_id" in current_order:
-                update_expression += ", job_id = :job_id"
-                expression_values[":job_id"] = current_order["job_id"]
+            logger.info(f"Retrieved current order: {json.dumps(current_order, default=str)}")
             
-            # Update order status in DynamoDB
-            update_response = table.update_item(
-                Key={"order_id": order_id},
-                UpdateExpression=update_expression,
-                ExpressionAttributeValues=expression_values,
-                ExpressionAttributeNames={
-                    "#order_status": "status"
-                },
-                ReturnValues="ALL_NEW"
+            # Create a new order object with updated fields
+            updated_order = current_order.copy()
+            updated_order.update({
+                "payment_status": "paid",
+                "status": "PAYMENT_COMPLETE",
+                "updated_at": current_time,
+                "amount_paid": amount_total
+            })
+            
+            # Put the complete updated item back
+            update_response = table.put_item(
+                Item=updated_order
             )
             
             logger.info(f"Updated order status to PAYMENT_COMPLETE: {order_id}")
-            
-            # Get the updated order
-            updated_order = update_response.get("Attributes", {})
             
             # Send email notification
             send_notification_email(current_order, payment_intent)

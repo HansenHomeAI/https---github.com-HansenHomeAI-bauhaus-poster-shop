@@ -159,11 +159,14 @@ def handler(event, context):
             if prodigi_order_id:
                 update_response = table.update_item(
                     Key={"order_id": order_id},
-                    UpdateExpression="SET prodigi_order_id = :poi, status = :status, updated_at = :time",
+                    UpdateExpression="SET prodigi_order_id = :poi, #status_field = :status, updated_at = :time",
                     ExpressionAttributeValues={
                         ":poi": prodigi_order_id,
                         ":status": "PROCESSING",
                         ":time": int(time.time())
+                    },
+                    ExpressionAttributeNames={
+                        "#status_field": "status"
                     },
                     ReturnValues="ALL_NEW"
                 )
@@ -186,11 +189,14 @@ def handler(event, context):
             # Update the order with error status
             table.update_item(
                 Key={"order_id": order_id},
-                UpdateExpression="SET status = :status, error_message = :error, updated_at = :time",
+                UpdateExpression="SET #status_field = :status, error_message = :error, updated_at = :time",
                 ExpressionAttributeValues={
                     ":status": "PRODIGI_ERROR",
                     ":error": error_message,
                     ":time": int(time.time())
+                },
+                ExpressionAttributeNames={
+                    "#status_field": "status"
                 }
             )
             
@@ -211,11 +217,14 @@ def handler(event, context):
         try:
             table.update_item(
                 Key={"order_id": order_id},
-                UpdateExpression="SET status = :status, error_message = :error, updated_at = :time",
+                UpdateExpression="SET #status_field = :status, error_message = :error, updated_at = :time",
                 ExpressionAttributeValues={
                     ":status": "ERROR",
                     ":error": error_message,
                     ":time": int(time.time())
+                },
+                ExpressionAttributeNames={
+                    "#status_field": "status"
                 }
             )
         except Exception as update_error:
