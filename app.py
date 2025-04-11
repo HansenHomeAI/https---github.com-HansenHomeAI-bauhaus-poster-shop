@@ -23,6 +23,6 @@ context = {
 }
 
 # Pass the environment to the stack
-BackendStack(app, "BauhausPosterShopStack", context, env=env)
+BackendStack(app, "SteepleCo", context, env=env)
 
 app.synth() 

@@ -210,8 +210,8 @@ class BackendStack(Stack):
         # Create API Gateway
         api = apigw.RestApi(
             self, 'PosterShopApi',
-            rest_api_name='BauhausPosterShopAPI',
-            description='API for Bauhaus Poster Shop',
+            rest_api_name='SteepleCo-API',
+            description='API for SteepleCo Poster Shop',
             default_cors_preflight_options=cors_options
         )
 
@@ -392,7 +392,7 @@ class BackendStack(Stack):
         )
 
         # Grant permissions
-        orders_table.grant_write_data(create_checkout_session)
+        orders_table.grant_read_write_data(create_checkout_session)
         orders_table.grant_read_write_data(process_webhook)
         orders_table.grant_write_data(prodigi_webhook_lambda)
         orders_table.grant_read_data(order_status_lambda)
