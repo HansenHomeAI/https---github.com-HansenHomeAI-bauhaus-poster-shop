@@ -207,52 +207,30 @@ def handler(event, context):
         
         try:
             # Get the current order first
+            logger.info(f"Retrieving order {order_id} from table {orders_table_name}")
             get_response = table.get_item(Key={"order_id": order_id})
             current_order = get_response.get("Item", {})
-            
-            # Log order data before update
-            logger.info(f"Current order before update: {json.dumps(current_order, default=str)}")
-            
-            # If order doesn't exist in DynamoDB, create it
+
             if not current_order:
-                logger.warning(f"Order {order_id} not found in DynamoDB. Creating new order record.")
-                current_time = int(time.time())
-                
-                # Create a basic order with the payment information
-                new_order = {
-                    'order_id': order_id,
-                    'client_id': client_id,
-                    'job_id': job_id,
-                    'status': 'PAYMENT_COMPLETE',
-                    'payment_status': 'paid',
-                    'payment_intent_id': payment_intent.get('id'),
-                    'amount_paid': str(amount_total),
-                    'customer_email': customer_email,
-                    'created_at': current_time,
-                    'updated_at': current_time
-                }
-                
-                try:
-                    table.put_item(Item=new_order)
-                    logger.info(f"Created new order record for {order_id}")
-                    current_order = new_order
-                except Exception as create_error:
-                    logger.error(f"Failed to create new order record: {str(create_error)}")
+                logger.error(f"Order {order_id} not found in DynamoDB. Unable to process.")
+                return {"statusCode": 404, "body": json.dumps({"error": f"Order {order_id} not found"})}
             
-            # Make sure we preserve items if they exist in the current order
+            logger.info(f"Found order in DynamoDB: {order_id}")
+            
+            # Update order status in DynamoDB
             update_expression = "SET payment_status = :payment_status, #status_attr = :order_status, updated_at = :time, amount_paid = :amount"
             expression_attr_values = {
                 ":payment_status": "paid",
-                ":order_status": "PAYMENT_COMPLETE",
+                ":order_status": "PAYMENT_COMPLETE", 
                 ":time": current_time,
-                ":amount": str(amount_total)  # Convert to string for consistency
+                ":amount": str(amount_total)
             }
             
             expression_attr_names = {
                 "#status_attr": "status"
             }
             
-            # Update order status in DynamoDB
+            # Update order in DynamoDB
             update_response = table.update_item(
                 Key={"order_id": order_id},
                 UpdateExpression=update_expression,
@@ -263,28 +241,22 @@ def handler(event, context):
             
             logger.info(f"Updated order status to PAYMENT_COMPLETE: {order_id}")
             
-            # Get the updated order
-            updated_order = update_response.get("Attributes", {})
-            
             # Send email notification
             send_notification_email(current_order, payment_intent)
             
             # Invoke order fulfillment Lambda asynchronously
             prodigi_lambda_name = os.environ.get("PRODIGI_ORDER_FUNCTION_NAME")
             if prodigi_lambda_name:
-                logger.info(f"Invoking Prodigi order processing for order: {order_id} using function: {prodigi_lambda_name}")
+                logger.info(f"Invoking Prodigi order processing for order: {order_id}")
                 
+                # Preserve ALL original order data and add payment info
                 invoke_payload = {
                     "order_id": order_id,
-                    "client_id": client_id,
-                    "job_id": job_id,
+                    "order_data": current_order,
                     "payment_intent": payment_intent
                 }
                 
-                # If we have items in the original order, include them in the payload
-                if current_order and 'items' in current_order:
-                    invoke_payload['items'] = current_order['items']
-                    logger.info(f"Including items in Prodigi Lambda payload: {current_order['items'][:100]}...")
+                logger.info(f"Sending order data to Prodigi lambda with keys: {list(current_order.keys())}")
                 
                 try:
                     lambda_response = lambda_client.invoke(

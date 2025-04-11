@@ -103,6 +103,16 @@ def handler(event, context):
                 }
             )
             logger.info(f"Stored pending order in DynamoDB: {order_id}")
+            
+            # Verify order was stored correctly
+            try:
+                verify_response = orders_table.get_item(Key={'order_id': order_id})
+                if 'Item' in verify_response:
+                    logger.info(f"Verified order exists in DynamoDB: {order_id}")
+                else:
+                    logger.warning(f"Could not verify order {order_id} in DynamoDB immediately after creation")
+            except Exception as verify_error:
+                logger.error(f"Error verifying order in DynamoDB: {str(verify_error)}")
         except Exception as db_error:
             # Log error but continue - we can still create a PaymentIntent even if DB fails
             logger.error(f"Failed to store pending order in DynamoDB: {str(db_error)}")
