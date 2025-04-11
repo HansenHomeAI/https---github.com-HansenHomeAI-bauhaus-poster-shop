@@ -38,16 +38,21 @@ const products = [
 ]
 
 // Cart functionality
-let cart = []
+let cart = JSON.parse(localStorage.getItem('cart') || '[]');
 const cartItems = document.getElementById("cart-items")
 const cartTotal = document.getElementById("cart-total")
 const cartCount = document.querySelector(".cart-count")
 const cartSidebar = document.getElementById("cart-sidebar")
 const overlay = document.getElementById("overlay")
 const checkoutBtn = document.getElementById("checkout-btn")
+const errorMessage = document.getElementById("error-message")
+const loadingOverlay = document.getElementById("loading-overlay")
+const loadingText = document.getElementById("loading-text")
+const emailInput = document.getElementById("email-input")
 
-// API Gateway URL (replace with your actual API Gateway URL after deployment)
-const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
+// API endpoint
+const API_URL = "https://h5w9p6vn2l.execute-api.us-west-2.amazonaws.com/prod"
+// const API_URL = "https://6ypk9kjze3.execute-api.us-west-2.amazonaws.com/prod"
 
 // Initialize Stripe
 let stripe
