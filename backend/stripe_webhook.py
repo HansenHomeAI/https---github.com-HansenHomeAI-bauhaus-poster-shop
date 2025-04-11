@@ -15,8 +15,8 @@ logger.setLevel(logging.INFO)
 
 # Initialize AWS resources
 dynamodb = boto3.resource("dynamodb")
-orders_table_name = os.environ.get("ORDERS_TABLE")
-logger.info(f"Using orders table from environment: {orders_table_name}")
+orders_table_name = os.environ.get("ORDERS_TABLE", "OrdersTable")
+logger.info(f"Using orders table: {orders_table_name}")
 
 # Log available environment variables to help debug (masking sensitive values)
 env_vars = {k: v[:4] + '****' if k.lower().find('key') >= 0 or k.lower().find('secret') >= 0 else v 

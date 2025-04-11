@@ -22,9 +22,9 @@ stripe.api_version = "2025-03-31"
 
 # Initialize DynamoDB
 dynamodb = boto3.resource("dynamodb")
-# Get the table name from environment variable - this is properly set by CDK
-orders_table_name = os.environ.get("ORDERS_TABLE")
-logger.info(f"Using orders table from environment: {orders_table_name}")
+# Hardcode the exact table name that actually exists
+orders_table_name = "BauhausPosterShopStack-OrdersTable315BB997-OQDL966NZFZL"
+logger.info(f"Using hardcoded orders table: {orders_table_name}")
 
 # Log available environment variables to help debug
 env_vars = {k: v[:4] + '****' if k.lower().find('key') >= 0 else v for k, v in os.environ.items()}
