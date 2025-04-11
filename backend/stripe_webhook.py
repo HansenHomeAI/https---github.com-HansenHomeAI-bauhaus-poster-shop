@@ -15,24 +15,8 @@ logger.setLevel(logging.INFO)
 
 # Initialize AWS resources
 dynamodb = boto3.resource("dynamodb")
-orders_table_name = os.environ.get("ORDERS_TABLE", "OrdersTable")
-logger.info(f"Using orders table: {orders_table_name}")
-
-# Log available environment variables to help debug (masking sensitive values)
-env_vars = {k: v[:4] + '****' if k.lower().find('key') >= 0 or k.lower().find('secret') >= 0 else v 
-            for k, v in os.environ.items()}
-logger.info(f"Environment variables: {json.dumps(env_vars, default=str)}")
-
-try:
-    # Test if the table exists
-    table = dynamodb.Table(orders_table_name)
-    table_details = table.meta.client.describe_table(TableName=orders_table_name)
-    logger.info(f"DynamoDB table found: {orders_table_name}, ARN: {table_details['Table']['TableArn']}")
-except Exception as e:
-    logger.error(f"Failed to initialize DynamoDB table: {str(e)}")
-    logger.error(f"Will try to continue anyway with table name: {orders_table_name}")
-    table = dynamodb.Table(orders_table_name)
-
+orders_table_name = os.environ.get("ORDERS_TABLE", "BauhausPosterShopOrders")
+table = dynamodb.Table(orders_table_name)
 lambda_client = boto3.client("lambda")
 ses_client = boto3.client('ses')
 
@@ -57,15 +41,6 @@ def send_notification_email(order_data, payment_intent):
         
         # Get items if available
         items = order_data.get('items', [])
-        # Parse JSON items if they're stored as a string
-        if isinstance(items, str):
-            try:
-                items = json.loads(items)
-                logger.info(f"Parsed items for email from JSON string: {json.dumps(items, default=str)}")
-            except Exception as e:
-                logger.error(f"Error parsing items JSON for email: {str(e)}")
-                items = []
-                
         items_html = ""
         for item in items:
             name = item.get('name', 'Unknown item')
@@ -223,7 +198,6 @@ def handler(event, context):
             return {"statusCode": 400, "body": json.dumps({"error": "Missing order_id"})}
             
         logger.info(f"Processing successful payment for order: {order_id}, client: {client_id}, job: {job_id}")
-        logger.info(f"Looking for order in table: {orders_table_name}")
         
         # Get customer details
         customer_email = payment_intent.get("receipt_email")
@@ -236,53 +210,26 @@ def handler(event, context):
             get_response = table.get_item(Key={"order_id": order_id})
             current_order = get_response.get("Item", {})
             
-            if not current_order:
-                logger.error(f"Order {order_id} not found in database")
-                logger.info(f"Full get_item response: {json.dumps(get_response, default=str)}")
-                
-                # Create a new order record since it's missing
-                current_order = {
-                    "order_id": order_id,
-                    "payment_intent_id": payment_intent.get("id"),
-                    "client_id": client_id or payment_intent.get("metadata", {}).get("client_id"),
-                    "job_id": job_id or payment_intent.get("metadata", {}).get("job_id"),
-                    "status": "PAYMENT_COMPLETE",
-                    "payment_status": "paid",
-                    "customer_email": payment_intent.get("receipt_email"),
-                    "amount": payment_intent.get("amount"),
-                    "amount_paid": amount_total,
-                    "created_at": current_time,
-                    "updated_at": current_time
-                }
-                
-                # If we have an email but no items, create a default item for the order
-                # This allows the Prodigi processor to still create a poster
-                if not current_order.get("items") and payment_intent.get("receipt_email"):
-                    current_order["items"] = json.dumps([{
-                        "id": "default",
-                        "name": "Bauhaus Poster",
-                        "price": payment_intent.get("amount") / 100,
-                        "quantity": 1
-                    }])
-                
-                logger.info(f"Created new order record: {json.dumps(current_order, default=str)}")
-            else:
-                logger.info(f"Retrieved current order: {json.dumps(current_order, default=str)}")
-                
-                # Update existing order with payment info
-                current_order.update({
-                    "payment_status": "paid",
-                    "status": "PAYMENT_COMPLETE",
-                    "updated_at": current_time,
-                    "amount_paid": amount_total
-                })
-            
-            # Put the complete updated item back
-            update_response = table.put_item(
-                Item=current_order
+            # Update order status in DynamoDB
+            update_response = table.update_item(
+                Key={"order_id": order_id},
+                UpdateExpression="SET payment_status = :payment_status, #order_status = :order_status, updated_at = :time, amount_paid = :amount",
+                ExpressionAttributeValues={
+                    ":payment_status": "paid",
+                    ":order_status": "PAYMENT_COMPLETE",
+                    ":time": current_time,
+                    ":amount": amount_total
+                },
+                ExpressionAttributeNames={
+                    "#order_status": "status"
+                },
+                ReturnValues="ALL_NEW"
             )
             
             logger.info(f"Updated order status to PAYMENT_COMPLETE: {order_id}")
+            
+            # Get the updated order
+            updated_order = update_response.get("Attributes", {})
             
             # Send email notification
             send_notification_email(current_order, payment_intent)

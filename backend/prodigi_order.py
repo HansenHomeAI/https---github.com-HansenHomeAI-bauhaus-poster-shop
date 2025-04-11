@@ -13,22 +13,7 @@ logger.setLevel(logging.INFO)
 # Initialize AWS resources
 dynamodb = boto3.resource('dynamodb')
 orders_table_name = os.environ.get('ORDERS_TABLE', 'OrdersTable')
-logger.info(f"Using orders table: {orders_table_name}")
-
-# Log available environment variables to help debug (masking sensitive values)
-env_vars = {k: v[:4] + '****' if k.lower().find('key') >= 0 else v 
-          for k, v in os.environ.items()}
-logger.info(f"Environment variables: {json.dumps(env_vars, default=str)}")
-
-try:
-    # Test if the table exists
-    table = dynamodb.Table(orders_table_name)
-    table_details = table.meta.client.describe_table(TableName=orders_table_name)
-    logger.info(f"DynamoDB table found: {orders_table_name}, ARN: {table_details['Table']['TableArn']}")
-except Exception as e:
-    logger.error(f"Failed to connect to DynamoDB table: {str(e)}")
-    logger.error(f"Will try to continue anyway with table name: {orders_table_name}")
-    table = dynamodb.Table(orders_table_name)
+table = dynamodb.Table(orders_table_name)
 
 def handler(event, context):
     """
@@ -84,43 +69,22 @@ def handler(event, context):
                 
         if not items:
             logger.error(f"No items found in order {order_id}")
-            # For orders without items, create a default item
-            # This is a fallback for orders created before the fix
-            items = [{
-                "id": "default",
-                "name": "Bauhaus Poster",
-                "price": order.get("amount_paid", 0) / 100 if order.get("amount_paid") else 50,
-                "quantity": 1
-            }]
-            logger.info(f"Created default item for order {order_id}: {json.dumps(items, default=str)}")
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"error": "Order has no items"})
+            }
         
         # Build the Prodigi order payload
         prodigi_items = []
         for item in items:
-            prodigi_item = {
+            prodigi_items.append({
                 "sku": "GLOBAL-POSTER-40x30",  # This should match a valid Prodigi SKU
                 "quantity": item.get("quantity", 1),
                 "sizing": "cover",
                 "attributes": {
                     "color": "white"
                 }
-            }
-            
-            # Add the image URL if it exists in the item
-            if "imageUrl" in item:
-                prodigi_item["assets"] = [{
-                    "printArea": "default",
-                    "url": item["imageUrl"]
-                }]
-            else:
-                # Fallback image URL for older orders
-                poster_id = item.get("id", "default")
-                prodigi_item["assets"] = [{
-                    "printArea": "default",
-                    "url": f"https://bauhaus-poster-gallery.s3.us-west-2.amazonaws.com/poster-{poster_id}.jpg"
-                }]
-            
-            prodigi_items.append(prodigi_item)
+            })
             
         prodigi_payload = {
             "shippingMethod": "GLOBAL_ECONOMY",
@@ -149,14 +113,6 @@ def handler(event, context):
                 "body": json.dumps({"error": "Missing Prodigi API configuration"})
             }
         
-        logger.info(f"Sending order to Prodigi with API key: {prodigi_api_key[:4]}*****")
-        
-        # Validate the API key format
-        if prodigi_api_key.startswith("test") or prodigi_api_key.startswith("prod"):
-            logger.info("API key format appears valid")
-        else:
-            logger.warning(f"API key format may be invalid - does not start with 'test' or 'prod'")
-        
         # Send order to Prodigi
         headers = {
             "X-API-Key": prodigi_api_key,
@@ -164,6 +120,7 @@ def handler(event, context):
         }
         prodigi_url = "https://api.prodigi.com/v4.0/orders"
         
+        logger.info(f"Sending order to Prodigi with API key: {prodigi_api_key[:4]}*****")
         logger.info(f"Prodigi payload: {json.dumps(prodigi_payload, default=str)}")
         
         response = requests.post(prodigi_url, headers=headers, json=prodigi_payload)
@@ -181,14 +138,11 @@ def handler(event, context):
             if prodigi_order_id:
                 update_response = table.update_item(
                     Key={"order_id": order_id},
-                    UpdateExpression="SET prodigi_order_id = :poi, #status_field = :status, updated_at = :time",
+                    UpdateExpression="SET prodigi_order_id = :poi, status = :status, updated_at = :time",
                     ExpressionAttributeValues={
                         ":poi": prodigi_order_id,
                         ":status": "PROCESSING",
                         ":time": int(time.time())
-                    },
-                    ExpressionAttributeNames={
-                        "#status_field": "status"
                     },
                     ReturnValues="ALL_NEW"
                 )
@@ -208,25 +162,14 @@ def handler(event, context):
             error_message = f"Failed to create Prodigi order: {response.text}"
             logger.error(error_message)
             
-            # Check for authentication issues
-            if response.status_code == 401:
-                logger.error("Authentication failed with Prodigi API. Please check your API key.")
-                
-                # Check the environment variable value directly
-                raw_api_key = os.environ.get("PRODIGI_API_KEY", "")
-                logger.info(f"Raw API key length: {len(raw_api_key)}, first/last chars: {raw_api_key[:2]}...{raw_api_key[-2:] if len(raw_api_key) > 2 else ''}")
-            
             # Update the order with error status
             table.update_item(
                 Key={"order_id": order_id},
-                UpdateExpression="SET #status_field = :status, error_message = :error, updated_at = :time",
+                UpdateExpression="SET status = :status, error_message = :error, updated_at = :time",
                 ExpressionAttributeValues={
                     ":status": "PRODIGI_ERROR",
                     ":error": error_message,
                     ":time": int(time.time())
-                },
-                ExpressionAttributeNames={
-                    "#status_field": "status"
                 }
             )
             
@@ -247,14 +190,11 @@ def handler(event, context):
         try:
             table.update_item(
                 Key={"order_id": order_id},
-                UpdateExpression="SET #status_field = :status, error_message = :error, updated_at = :time",
+                UpdateExpression="SET status = :status, error_message = :error, updated_at = :time",
                 ExpressionAttributeValues={
                     ":status": "ERROR",
                     ":error": error_message,
                     ":time": int(time.time())
-                },
-                ExpressionAttributeNames={
-                    "#status_field": "status"
                 }
             )
         except Exception as update_error:
