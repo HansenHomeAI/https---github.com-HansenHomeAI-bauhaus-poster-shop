@@ -38,7 +38,7 @@ jobs:
 
       - name: CDK Deploy
         run: |
-          cdk deploy BauhausPosterShopStack --require-approval never \
+          cdk deploy SteepleCo --require-approval never \
             -c stripe_test_secret_key=${{ secrets.STRIPE_TEST_SECRET_KEY }} \
             -c stripe_secret_key=${{ secrets.STRIPE_SECRET_KEY }} \
             -c stripe_webhook_secret=${{ secrets.STRIPE_WEBHOOK_SECRET }} \

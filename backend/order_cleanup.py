@@ -10,7 +10,7 @@ logger.setLevel(logging.INFO)
 
 # Initialize AWS resources
 dynamodb = boto3.resource("dynamodb")
-orders_table_name = os.environ.get("ORDERS_TABLE", "BauhausPosterShopOrders")
+orders_table_name = os.environ.get("ORDERS_TABLE", "SteepleCo-Orders")
 table = dynamodb.Table(orders_table_name)
 
 def handler(event, context):

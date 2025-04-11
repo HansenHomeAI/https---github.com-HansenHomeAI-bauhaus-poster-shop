@@ -19,6 +19,7 @@ class BackendStack(Stack):
         # Create DynamoDB table for orders
         orders_table = dynamodb.Table(
             self, "OrdersTable",
+            table_name="SteepleCo-Orders",
             partition_key=dynamodb.Attribute(
                 name="order_id",
                 type=dynamodb.AttributeType.STRING
@@ -30,6 +31,7 @@ class BackendStack(Stack):
         # Order Cleanup Lambda (runs weekly)
         order_cleanup_lambda = _lambda.Function(
             self, "OrderCleanupLambda",
+            function_name="SteepleCo-OrderCleanup",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="order_cleanup.handler",
             code=_lambda.Code.from_asset(
@@ -62,6 +64,7 @@ class BackendStack(Stack):
         # Create Lambda functions
         create_checkout_session = _lambda.Function(
             self, 'CreateCheckoutSession',
+            function_name="SteepleCo-CreateCheckout",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset(
                 'backend',
@@ -85,6 +88,7 @@ class BackendStack(Stack):
         # Prodigi Order Lambda
         prodigi_order_lambda = _lambda.Function(
             self, "ProdigiOrderLambda",
+            function_name="SteepleCo-ProdigiOrder",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="prodigi_order.handler",
             code=_lambda.Code.from_asset(
@@ -121,6 +125,7 @@ class BackendStack(Stack):
         # Update ProcessWebhook Lambda to use SES
         process_webhook = _lambda.Function(
             self, 'ProcessWebhook',
+            function_name="SteepleCo-WebhookHandler",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset(
                 'backend',
@@ -159,6 +164,7 @@ class BackendStack(Stack):
         # Prodigi Webhook Lambda
         prodigi_webhook_lambda = _lambda.Function(
             self, "ProdigiWebhookLambda",
+            function_name="SteepleCo-ProdigiWebhook",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="prodigi_webhook.handler",
             code=_lambda.Code.from_asset(
@@ -183,6 +189,7 @@ class BackendStack(Stack):
         # Order Status Lambda
         order_status_lambda = _lambda.Function(
             self, "OrderStatusLambda",
+            function_name="SteepleCo-OrderStatus",
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler="order_status.handler",
             code=_lambda.Code.from_asset(
@@ -253,6 +260,7 @@ class BackendStack(Stack):
         # Add stripe test endpoint
         stripe_test_lambda = _lambda.Function(
             self, 'StripeTest',
+            function_name="SteepleCo-StripeTest",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset(
                 'backend',
@@ -292,6 +300,7 @@ class BackendStack(Stack):
         # Payment Success Lambda
         payment_success_lambda = _lambda.Function(
             self, 'PaymentSuccessLambda',
+            function_name="SteepleCo-PaymentSuccess",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset(
                 'backend',
@@ -346,6 +355,7 @@ class BackendStack(Stack):
         # Payment Status Lambda
         payment_status_lambda = _lambda.Function(
             self, 'PaymentStatusLambda',
+            function_name="SteepleCo-PaymentStatus",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset(
                 'backend',

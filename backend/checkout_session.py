@@ -21,7 +21,7 @@ stripe.api_version = "2023-10-16"
 
 # Initialize DynamoDB
 dynamodb = boto3.resource("dynamodb")
-orders_table_name = os.environ.get("ORDERS_TABLE", "BauhausPosterShopOrders")
+orders_table_name = os.environ.get("ORDERS_TABLE", "SteepleCo-Orders")
 try:
     orders_table = dynamodb.Table(orders_table_name)
 except Exception as e:
