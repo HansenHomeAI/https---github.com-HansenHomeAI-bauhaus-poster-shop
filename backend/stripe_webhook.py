@@ -213,8 +213,34 @@ def handler(event, context):
             # Log order data before update
             logger.info(f"Current order before update: {json.dumps(current_order, default=str)}")
             
+            # If order doesn't exist in DynamoDB, create it
+            if not current_order:
+                logger.warning(f"Order {order_id} not found in DynamoDB. Creating new order record.")
+                current_time = int(time.time())
+                
+                # Create a basic order with the payment information
+                new_order = {
+                    'order_id': order_id,
+                    'client_id': client_id,
+                    'job_id': job_id,
+                    'status': 'PAYMENT_COMPLETE',
+                    'payment_status': 'paid',
+                    'payment_intent_id': payment_intent.get('id'),
+                    'amount_paid': str(amount_total),
+                    'customer_email': customer_email,
+                    'created_at': current_time,
+                    'updated_at': current_time
+                }
+                
+                try:
+                    table.put_item(Item=new_order)
+                    logger.info(f"Created new order record for {order_id}")
+                    current_order = new_order
+                except Exception as create_error:
+                    logger.error(f"Failed to create new order record: {str(create_error)}")
+            
             # Make sure we preserve items if they exist in the current order
-            update_expression = "SET payment_status = :payment_status, #order_status = :order_status, updated_at = :time, amount_paid = :amount"
+            update_expression = "SET payment_status = :payment_status, #status_attr = :order_status, updated_at = :time, amount_paid = :amount"
             expression_attr_values = {
                 ":payment_status": "paid",
                 ":order_status": "PAYMENT_COMPLETE",
@@ -222,14 +248,16 @@ def handler(event, context):
                 ":amount": str(amount_total)  # Convert to string for consistency
             }
             
+            expression_attr_names = {
+                "#status_attr": "status"
+            }
+            
             # Update order status in DynamoDB
             update_response = table.update_item(
                 Key={"order_id": order_id},
                 UpdateExpression=update_expression,
                 ExpressionAttributeValues=expression_attr_values,
-                ExpressionAttributeNames={
-                    "#order_status": "status"
-                },
+                ExpressionAttributeNames=expression_attr_names,
                 ReturnValues="ALL_NEW"
             )
             

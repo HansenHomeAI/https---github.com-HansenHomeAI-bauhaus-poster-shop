@@ -100,9 +100,12 @@ def handler(event, context):
                 try:
                     table.update_item(
                         Key={"order_id": order_id},
-                        UpdateExpression="SET items = :items",
+                        UpdateExpression="SET #items_attr = :items",
                         ExpressionAttributeValues={
                             ":items": json.dumps(items)
+                        },
+                        ExpressionAttributeNames={
+                            "#items_attr": "items"
                         }
                     )
                     logger.info(f"Updated order {order_id} with default items")
@@ -145,7 +148,12 @@ def handler(event, context):
         }
         
         # Get Prodigi API key
-        prodigi_api_key = os.environ.get("PRODIGI_API_KEY")
+        prodigi_api_key = os.environ.get("PRODIGI_SANDBOX_API_KEY")
+        if not prodigi_api_key:
+            # Fall back to regular API key if sandbox key is not set
+            prodigi_api_key = os.environ.get("PRODIGI_API_KEY")
+            logger.warning("Using PRODIGI_API_KEY as PRODIGI_SANDBOX_API_KEY was not found. Please set PRODIGI_SANDBOX_API_KEY for testing.")
+            
         if not prodigi_api_key:
             logger.error("No Prodigi API key configured")
             return {
@@ -153,12 +161,29 @@ def handler(event, context):
                 "body": json.dumps({"error": "Missing Prodigi API configuration"})
             }
         
+        # Show a masked version of the API key for debugging
+        masked_key = prodigi_api_key[:4] + '*' * 5
+        logger.info(f"Using Prodigi API key: {masked_key}")
+        
+        # Check if API key looks like a valid key
+        if prodigi_api_key.startswith("test_") or prodigi_api_key.startswith("prod_"):
+            logger.info("API key has valid prefix format")
+        else:
+            logger.warning("API key may have invalid format. Should start with 'test_' or 'prod_'")
+            
         # Send order to Prodigi
         headers = {
             "X-API-Key": prodigi_api_key,
             "Content-Type": "application/json"
         }
-        prodigi_url = "https://api.prodigi.com/v4.0/orders"
+        
+        # Use sandbox URL if using sandbox API key
+        if "PRODIGI_SANDBOX_API_KEY" in os.environ and prodigi_api_key == os.environ.get("PRODIGI_SANDBOX_API_KEY"):
+            prodigi_url = "https://api.sandbox.prodigi.com/v4.0/orders"
+            logger.info("Using Prodigi SANDBOX API endpoint")
+        else:
+            prodigi_url = "https://api.prodigi.com/v4.0/orders"
+            logger.info("Using Prodigi PRODUCTION API endpoint")
         
         logger.info(f"Sending order to Prodigi with API key: {prodigi_api_key[:4]}*****")
         logger.info(f"Prodigi payload: {json.dumps(prodigi_payload, default=str)}")
@@ -178,11 +203,14 @@ def handler(event, context):
             if prodigi_order_id:
                 update_response = table.update_item(
                     Key={"order_id": order_id},
-                    UpdateExpression="SET prodigi_order_id = :poi, status = :status, updated_at = :time",
+                    UpdateExpression="SET prodigi_order_id = :poi, #status_attr = :status, updated_at = :time",
                     ExpressionAttributeValues={
                         ":poi": prodigi_order_id,
                         ":status": "PROCESSING",
                         ":time": int(time.time())
+                    },
+                    ExpressionAttributeNames={
+                        "#status_attr": "status"
                     },
                     ReturnValues="ALL_NEW"
                 )
@@ -202,14 +230,25 @@ def handler(event, context):
             error_message = f"Failed to create Prodigi order: {response.text}"
             logger.error(error_message)
             
+            # Additional detailed logging for common errors
+            if response.status_code == 401:
+                logger.error("Authentication failed. Please check your API key is valid and has the correct permissions.")
+                logger.error(f"API key used (first 4 chars): {prodigi_api_key[:4]}")
+            elif response.status_code == 400:
+                logger.error("Bad request. Please check the payload format and required fields.")
+                logger.error(f"Request payload: {json.dumps(prodigi_payload)}")
+            
             # Update the order with error status
             table.update_item(
                 Key={"order_id": order_id},
-                UpdateExpression="SET status = :status, error_message = :error, updated_at = :time",
+                UpdateExpression="SET #status_attr = :status, error_message = :error, updated_at = :time",
                 ExpressionAttributeValues={
                     ":status": "PRODIGI_ERROR",
                     ":error": error_message,
                     ":time": int(time.time())
+                },
+                ExpressionAttributeNames={
+                    "#status_attr": "status"
                 }
             )
             
@@ -230,11 +269,14 @@ def handler(event, context):
         try:
             table.update_item(
                 Key={"order_id": order_id},
-                UpdateExpression="SET status = :status, error_message = :error, updated_at = :time",
+                UpdateExpression="SET #status_attr = :status, error_message = :error, updated_at = :time",
                 ExpressionAttributeValues={
                     ":status": "ERROR",
                     ":error": error_message,
                     ":time": int(time.time())
+                },
+                ExpressionAttributeNames={
+                    "#status_attr": "status"
                 }
             )
         except Exception as update_error:
