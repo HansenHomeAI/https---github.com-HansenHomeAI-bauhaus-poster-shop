@@ -89,7 +89,7 @@ def handler(event, context):
     
     logger.info(f"Processing order {order_id} with {len(items)} items for {customer_email}")
     
-    # Get Prodigi API key
+    # Get Prodigi Sandbox API key - ONLY use sandbox for testing
     prodigi_api_key = os.environ.get("PRODIGI_SANDBOX_API_KEY")
     logger.info(f"Available Prodigi env vars: {[k for k in os.environ.keys() if 'PRODIGI' in k]}")
     
@@ -97,7 +97,7 @@ def handler(event, context):
         logger.error("PRODIGI_SANDBOX_API_KEY not set in environment variables")
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": "Missing Prodigi API configuration"})
+            "body": json.dumps({"error": "Missing Prodigi Sandbox API configuration"})
         }
     
     # Show a masked version of the API key for debugging
@@ -151,12 +151,9 @@ def handler(event, context):
     }
     
     # Determine API endpoint based on environment
-    if "SANDBOX" in os.environ.get("PRODIGI_SANDBOX_API_KEY", ""):
-        prodigi_url = "https://api.sandbox.prodigi.com/v4.0/orders"
-        logger.info("Using Prodigi SANDBOX API endpoint")
-    else:
-        prodigi_url = "https://api.prodigi.com/v4.0/orders"
-        logger.info("Using Prodigi PRODUCTION API endpoint")
+    # When using PRODIGI_SANDBOX_API_KEY, always use sandbox endpoint
+    prodigi_url = "https://api.sandbox.prodigi.com/v4.0/orders"
+    logger.info("Using Prodigi SANDBOX API endpoint")
     
     logger.info(f"Sending order to Prodigi")
     logger.info(f"Prodigi payload: {json.dumps(prodigi_payload, default=str)}")

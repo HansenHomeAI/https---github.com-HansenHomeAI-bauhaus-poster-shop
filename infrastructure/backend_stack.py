@@ -103,7 +103,7 @@ class BackendStack(Stack):
             ),
             environment={
                 "ORDERS_TABLE": orders_table.table_name,
-                "PRODIGI_API_KEY": self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
+                "PRODIGI_SANDBOX_API_KEY": self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sandbox_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
                 "LOG_LEVEL": "DEBUG"  # Set to DEBUG for maximum logging
             },
             timeout=Duration.seconds(30)  # Give it enough time to process the API call
@@ -141,7 +141,7 @@ class BackendStack(Stack):
             environment={
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_secret_key') or self.node.try_get_context('stripe_test_secret_key') or "sk_placeholder_value",
                 'STRIPE_WEBHOOK_SECRET': self.node.try_get_context('stripe_webhook_secret') or "whsec_placeholder",
-                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
+                'PRODIGI_SANDBOX_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sandbox_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
                 'ORDERS_TABLE': orders_table.table_name,
                 'SES_SENDER_EMAIL': self.node.try_get_context('ses_sender_email') or 'hello@hansenhome.ai',
                 'PRODIGI_ORDER_FUNCTION_NAME': prodigi_order_lambda.function_name,
@@ -315,7 +315,7 @@ class BackendStack(Stack):
             handler='payment_success.handler',
             environment={
                 'STRIPE_SECRET_KEY': self.node.try_get_context('stripe_test_secret_key') or self.node.try_get_context('stripe_secret_key') or "sk_placeholder_value",
-                'PRODIGI_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
+                'PRODIGI_SANDBOX_API_KEY': self.node.try_get_context('prodigi_sandbox_api_key') or "prod_sandbox_sk_xxxxxxxxxxxxxxxxxxxxxxxx",
                 'ORDERS_TABLE': orders_table.table_name,
                 'SES_SENDER_EMAIL': self.node.try_get_context('ses_sender_email') or 'hello@hansenhome.ai'
             }
