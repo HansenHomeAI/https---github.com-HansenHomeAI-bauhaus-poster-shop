@@ -209,7 +209,7 @@ class BackendStack(Stack):
 
         # Define CORS options
         cors_options = apigw.CorsOptions(
-            allow_origins=["https://hansenhomeai.github.io"],
+            allow_origins=["*"],
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allow_headers=["*"]
         )
@@ -230,7 +230,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
@@ -332,7 +332,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,POST'"
                 }
@@ -381,7 +381,7 @@ class BackendStack(Stack):
             integration_responses=[{
                 'statusCode': '200',
                 'responseParameters': {
-                    'method.response.header.Access-Control-Allow-Origin': "'https://hansenhomeai.github.io'",
+                    'method.response.header.Access-Control-Allow-Origin': "'*'",
                     'method.response.header.Access-Control-Allow-Headers': "'*'",
                     'method.response.header.Access-Control-Allow-Methods': "'OPTIONS,GET'"
                 }
