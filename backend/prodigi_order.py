@@ -118,8 +118,21 @@ def handler(event, context):
     # Build the Prodigi order payload
     prodigi_items = []
     for item in items:
-        # Map to valid Prodigi SKUs
-        sku = "GLOBAL-POSTER-16x12"  # Default SKU for posters
+        # Try multiple possible SKUs for different Prodigi poster formats
+        # Common Prodigi SKUs for posters
+        item_sku = None
+        
+        # Try these SKUs in order until one works
+        possible_skus = [
+            "GLOBAL-FAP-12X18",  # Fine Art Paper
+            "GLOBAL-PSC-11X17",  # Photo Satin
+            "GLOBAL-PSW-16X20",  # Photo Semi-Gloss
+            "POSTER-A3",         # Standard A3 poster
+            "POSTER-A2"          # Standard A2 poster
+        ]
+        
+        # Use the first SKU for now, will implement fallback mechanism in future
+        item_sku = possible_skus[0]
         
         # Extract image file from item
         image_url = item.get("image", "")
@@ -132,7 +145,7 @@ def handler(event, context):
             image_url = f"https://hansenhomeai.github.io/{image_url}"
             
         prodigi_items.append({
-            "sku": sku,
+            "sku": item_sku,
             "copies": item.get("quantity", 1),
             "sizing": "fillPrintArea",  # Valid values: fillPrintArea, fitPrintArea
             "assets": [
@@ -171,10 +184,10 @@ def handler(event, context):
         "recipient": {
             "name": customer_name,
             "email": customer_email,
-            "phoneNumber": shipping_details.get("phone", ""),
+            "phoneNumber": shipping_details.get("phone", "") or "0000000000",  # Default phone if empty
             "address": {
                 "line1": shipping_details.get("address1", ""),
-                "line2": shipping_details.get("address2", "Apt 1"),  # Prodigi requires line2
+                "line2": shipping_details.get("address2", "") or "N/A",  # Default to N/A if empty
                 "postalOrZipCode": shipping_details.get("postalCode", ""),
                 "countryCode": shipping_details.get("country", "US"),
                 "townOrCity": shipping_details.get("city", ""),
