@@ -1272,3 +1272,160 @@ footer {
   color: #666;
   margin-top: 16px;
 }
+
+/* Cart Steps */
+.cart-steps-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-step {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.cart-step.hidden {
+  display: none;
+}
+
+/* Cart Step 2 - Shipping */
+.cart-step-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  padding: 5px;
+  margin-right: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #1E1E1E;
+  font-size: 14px;
+}
+
+.back-btn svg {
+  margin-right: 5px;
+}
+
+.shipping-form {
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.shipping-options {
+  margin: 20px 0;
+}
+
+.shipping-options h4 {
+  margin-bottom: 10px;
+}
+
+.shipping-option {
+  margin-bottom: 10px;
+}
+
+.shipping-option input {
+  display: none;
+}
+
+.shipping-option label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shipping-option input:checked + label {
+  border-color: #256F8A;
+  background-color: rgba(37, 111, 138, 0.05);
+}
+
+.shipping-option-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.shipping-name {
+  font-weight: 500;
+}
+
+.shipping-time {
+  font-size: 12px;
+  color: #666;
+}
+
+.shipping-price {
+  font-weight: 500;
+}
+
+.order-summary {
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 4px;
+  margin-top: auto;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.summary-row.total {
+  font-weight: 600;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+  margin-top: 10px;
+}
+
+/* Cart Step 1 */
+.cart-items {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.cart-footer {
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid #f1f1f1;
+}

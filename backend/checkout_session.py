@@ -68,6 +68,11 @@ def handler(event, context):
         items = body.get("items", [])
         customer_email = body.get("customerEmail")
         
+        # Extract shipping information
+        shipping_address = body.get("shippingAddress", {})
+        shipping_method = body.get("shippingMethod", "BUDGET")
+        phone_number = body.get("phoneNumber", "")
+        
         # Extract client_id if provided or generate a new one
         client_id = body.get("clientId", str(uuid.uuid4()))
         
@@ -80,10 +85,23 @@ def handler(event, context):
         if not items:
             raise ValueError("No items provided in the request")
 
-        # Calculate total amount
-        total_amount = sum(int(float(item.get("price")) * 100) * item.get("quantity", 1) for item in items)
+        # Calculate total amount for items
+        items_amount = sum(int(float(item.get("price")) * 100) * item.get("quantity", 1) for item in items)
+        
+        # Calculate shipping cost based on selected method
+        shipping_cost = 0
+        if shipping_method == "STANDARD":
+            shipping_cost = 580  # $5.80
+        elif shipping_method == "EXPRESS":
+            shipping_cost = 1530  # $15.30
+        elif shipping_method == "OVERNIGHT":
+            shipping_cost = 2730  # $27.30
+        
+        # Calculate total including shipping
+        total_amount = items_amount + shipping_cost
         
         logger.info(f"Creating checkout session for client_id: {client_id}, job_id: {job_id}, order_id: {order_id}")
+        logger.info(f"Item amount: {items_amount}, Shipping cost: {shipping_cost}, Total: {total_amount}")
         
         # Store the pending order in DynamoDB
         current_time = int(time.time())
@@ -96,6 +114,11 @@ def handler(event, context):
                     'status': 'PENDING',
                     'items': json.dumps(items),  # Convert to string for DynamoDB
                     'customer_email': customer_email,
+                    'phone_number': phone_number,
+                    'shipping_address': shipping_address,
+                    'shipping_method': shipping_method,
+                    'items_amount': items_amount,
+                    'shipping_cost': shipping_cost,
                     'amount': total_amount,
                     'created_at': current_time,
                     'updated_at': current_time,

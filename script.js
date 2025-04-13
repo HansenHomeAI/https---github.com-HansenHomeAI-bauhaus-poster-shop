@@ -83,6 +83,14 @@ const closeCartBtn = document.getElementById("close-cart")
 const productModal = document.getElementById("product-modal")
 const closeModal = document.getElementById("close-modal")
 const contactLink = document.getElementById("contact-link")
+const cartNextBtn = document.getElementById("cart-next-btn")
+const backToCartBtn = document.getElementById("back-to-cart-btn")
+const cartStep1 = document.getElementById("cart-step-1")
+const cartStep2 = document.getElementById("cart-step-2")
+const summarySubtotal = document.getElementById("summary-subtotal")
+const summaryShipping = document.getElementById("summary-shipping")
+const summaryTotal = document.getElementById("summary-total")
+const shippingOptions = document.querySelectorAll('input[name="shipping-method"]')
 
 // Initialize cart count visibility
 if (cart.length === 0) {
@@ -197,116 +205,105 @@ function updateCart() {
   // Clear cart items
   cartItems.innerHTML = ""
 
-  // Calculate total
-  let total = 0
-  let count = 0
-
-  // Add items to cart
-  cart.forEach((item) => {
-    const cartItem = document.createElement("div")
-    cartItem.classList.add("cart-item")
-
-    cartItem.innerHTML = `
-      <div class="cart-item-image">
-        <img src="${item.image}" alt="${item.name}">
-      </div>
-      <div class="cart-item-details">
-        <div class="cart-item-title">${item.name}</div>
-        <div class="cart-item-price">$${item.price.toFixed(2)}</div>
-        <div class="cart-item-quantity">
-          <button class="quantity-btn decrease" data-id="${item.id}">-</button>
-          <span>${item.quantity}</span>
-          <button class="quantity-btn increase" data-id="${item.id}">+</button>
-        </div>
-      </div>
-    `
-
-    cartItems.appendChild(cartItem)
-
-    // Add event listeners
-    const decreaseBtn = cartItem.querySelector(".decrease")
-    const increaseBtn = cartItem.querySelector(".increase")
-
-    decreaseBtn.addEventListener("click", () => {
-      decreaseQuantity(item.id)
-    })
-
-    increaseBtn.addEventListener("click", () => {
-      increaseQuantity(item.id)
-    })
-
-    // Update total and count
-    total += item.price * item.quantity
-    count += item.quantity
-  })
-
-  // Update cart total and count
-  cartTotal.textContent = `$${total.toFixed(2)}`
-  
-  // Update cart count and visibility of count badge
-  cartCount.textContent = count
-  if (count > 0) {
-    cartCount.style.display = 'flex'
-  } else {
+  // Check if cart is empty
+  if (cart.length === 0) {
+    cartItems.innerHTML = `<p class="empty-cart-message">Your cart is empty</p>`
     cartCount.style.display = 'none'
+    cartNextBtn.disabled = true
+    cartNextBtn.classList.add('disabled')
+  } else {
+    cartCount.style.display = 'flex'
+    cartNextBtn.disabled = false
+    cartNextBtn.classList.remove('disabled')
+
+    // Add items to cart
+    cart.forEach((item) => {
+      const cartItem = document.createElement("div")
+      cartItem.classList.add("cart-item")
+
+      cartItem.innerHTML = `
+        <div class="cart-item-image">
+          <img src="${item.image}" alt="${item.name}">
+        </div>
+        <div class="cart-item-details">
+          <h4 class="cart-item-title">${item.name}</h4>
+          <div class="cart-item-price">$${(item.price * item.quantity).toFixed(2)}</div>
+          <div class="cart-item-quantity">
+            <button class="quantity-btn decrease" data-id="${item.id}">-</button>
+            <span class="quantity">${item.quantity}</span>
+            <button class="quantity-btn increase" data-id="${item.id}">+</button>
+          </div>
+        </div>
+        <button class="remove-item" data-id="${item.id}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 6L18 18" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      `
+
+      cartItems.appendChild(cartItem)
+
+      // Add event listeners to quantity buttons and remove button
+      const decreaseBtn = cartItem.querySelector(".decrease")
+      const increaseBtn = cartItem.querySelector(".increase")
+      const removeBtn = cartItem.querySelector(".remove-item")
+
+      decreaseBtn.addEventListener("click", () => {
+        decreaseQuantity(item.id)
+      })
+
+      increaseBtn.addEventListener("click", () => {
+        increaseQuantity(item.id)
+      })
+
+      removeBtn.addEventListener("click", () => {
+        removeFromCart(item.id)
+      })
+    })
   }
 
-  // Add email input if not already present
-  let emailContainer = document.querySelector('.cart-email-container');
-  if (!emailContainer && cart.length > 0) {
-    emailContainer = document.createElement('div');
-    emailContainer.classList.add('cart-email-container');
-    emailContainer.innerHTML = `
-      <div class="email-input-wrapper">
-        <input type="email" id="cart-email" placeholder=" " required>
-        <label for="cart-email">Email for Shipping Updates</label>
-        <div class="email-validation-message">Please enter a valid email address</div>
-      </div>
-    `;
-    cartItems.insertAdjacentElement('afterend', emailContainer);
-    
-    // Enable/disable checkout button based on email validity
-    const emailInput = emailContainer.querySelector('#cart-email');
-    const validationMessage = emailContainer.querySelector('.email-validation-message');
-    
-    // Initially hide validation message
-    validationMessage.style.opacity = '0';
-    
-    // Add a variable to store the timeout
-    let validationTimeout;
-    
-    emailInput.addEventListener('input', () => {
-      // Clear any existing timeout
-      if (validationTimeout) {
-        clearTimeout(validationTimeout);
-      }
-      
-      const isValid = emailInput.checkValidity();
-      
-      // Always enable/disable the button immediately
-      checkoutBtn.disabled = !isValid;
-      
-      // If valid, hide message immediately and store email
-      if (isValid) {
-        validationMessage.style.opacity = '0';
-        emailContainer.classList.remove('invalid');
-        localStorage.setItem('customerEmail', emailInput.value);
-      } else {
-        // If invalid, set a timeout to show the message after 1.75 seconds
-        validationTimeout = setTimeout(() => {
-          if (!emailInput.checkValidity()) {
-            validationMessage.style.opacity = '1';
-            emailContainer.classList.add('invalid');
-          }
-        }, 1750); // 1.75 seconds
-      }
-    });
-    
-    // Initially disable checkout button
-    checkoutBtn.disabled = true;
-  } else if (cart.length === 0 && emailContainer) {
-    emailContainer.remove();
+  // Calculate subtotal
+  const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0)
+  cartTotal.innerText = `$${subtotal.toFixed(2)}`
+  
+  // Update order summary
+  updateOrderSummary()
+
+  // Save cart to localStorage
+  localStorage.setItem("cart", JSON.stringify(cart))
+
+  // Update cart count
+  updateCartCount()
+}
+
+// Update order summary based on cart items and shipping selection
+function updateOrderSummary() {
+  const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0)
+  summarySubtotal.innerText = `$${subtotal.toFixed(2)}`
+  
+  // Get selected shipping method
+  const selectedShipping = document.querySelector('input[name="shipping-method"]:checked');
+  let shippingCost = 0;
+  
+  if (selectedShipping) {
+    switch (selectedShipping.value) {
+      case 'STANDARD':
+        shippingCost = 5.80;
+        break;
+      case 'EXPRESS':
+        shippingCost = 15.30;
+        break;
+      case 'OVERNIGHT':
+        shippingCost = 27.30;
+        break;
+      default:
+        shippingCost = 0;
+    }
   }
+  
+  summaryShipping.innerText = shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`;
+  summaryTotal.innerText = `$${(subtotal + shippingCost).toFixed(2)}`;
 }
 
 // Decrease quantity
@@ -1112,5 +1109,114 @@ function startPaymentStatusPolling() {
     
     // Start first poll immediately
     poll();
+}
+
+// Event Listeners
+document.addEventListener("DOMContentLoaded", () => {
+  // Display products
+  displayProducts()
+
+  // Open cart on click
+  cartToggle.addEventListener("click", openCart)
+
+  // Close cart on click
+  closeCartBtn.addEventListener("click", closeCart)
+
+  // Close cart when clicking outside
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      closeCart()
+      closeProductModal()
+    }
+  })
+
+  // Close product modal on click
+  closeModal.addEventListener("click", closeProductModal)
+
+  // Checkout button click event
+  checkoutBtn.addEventListener("click", processCheckout)
+  
+  // Cart step navigation
+  cartNextBtn.addEventListener("click", () => {
+    cartStep1.classList.add('hidden');
+    cartStep2.classList.remove('hidden');
+    updateOrderSummary();
+  });
+  
+  backToCartBtn.addEventListener("click", () => {
+    cartStep2.classList.add('hidden');
+    cartStep1.classList.remove('hidden');
+  });
+  
+  // Update order summary when shipping method changes
+  shippingOptions.forEach(option => {
+    option.addEventListener('change', updateOrderSummary);
+  });
+
+  // ... other existing event listeners ...
+})
+
+// Process checkout with shipping information
+async function processCheckout() {
+  try {
+    // Validate the form
+    const emailInput = document.getElementById('email-input');
+    const nameInput = document.getElementById('name-input');
+    const address1Input = document.getElementById('address1-input');
+    const address2Input = document.getElementById('address2-input');
+    const cityInput = document.getElementById('city-input');
+    const stateInput = document.getElementById('state-input');
+    const zipInput = document.getElementById('zip-input');
+    const countryInput = document.getElementById('country-input');
+    const phoneInput = document.getElementById('phone-input');
+    const shippingMethod = document.querySelector('input[name="shipping-method"]:checked').value;
+    
+    if (!emailInput.value || !nameInput.value || !address1Input.value || 
+        !address2Input.value || !cityInput.value || !stateInput.value || 
+        !zipInput.value || !countryInput.value) {
+      alert('Please fill in all required shipping information');
+      return;
+    }
+    
+    // Show loading state
+    setLoading(true);
+    
+    // Create shipping address object
+    const shippingAddress = {
+      name: nameInput.value,
+      line1: address1Input.value,
+      line2: address2Input.value,
+      postalOrZipCode: zipInput.value,
+      countryCode: countryInput.value,
+      townOrCity: cityInput.value,
+      stateOrCounty: stateInput.value
+    };
+
+    // Prepare checkout data
+    const checkoutData = {
+      items: cart,
+      customerEmail: emailInput.value,
+      phoneNumber: phoneInput.value,
+      shippingAddress: shippingAddress,
+      shippingMethod: shippingMethod,
+      clientId: getClientId()
+    };
+
+    console.log('[DEBUG] Creating checkout session with data:', checkoutData);
+
+    // Make API request to create checkout session
+    const response = await fetch(`${API_URL}/checkout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(checkoutData)
+    });
+
+    // ... existing checkout code ...
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error creating checkout session: ' + error.message);
+  }
 }
 
