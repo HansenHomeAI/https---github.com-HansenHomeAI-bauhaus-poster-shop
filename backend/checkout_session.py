@@ -144,22 +144,16 @@ def handler(event, context):
         logger.info(f"Created payment intent: {payment_intent.id} for order: {order_id}")
         
         # Return the client secret to the frontend
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'clientSecret': payment_intent.client_secret,
-                'orderId': order_id,
-                'jobId': job_id,
-                'clientId': client_id
-            })
-        }
+        return create_cors_response(200, {
+            'clientSecret': payment_intent.client_secret,
+            'orderId': order_id,
+            'jobId': job_id,
+            'clientId': client_id
+        })
         
     except Exception as e:
         logger.error(f"Error creating checkout session: {str(e)}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': f"Failed to create checkout session: {str(e)}"})
-        }
+        return create_cors_response(500, {'error': f"Failed to create checkout session: {str(e)}"})
 
 def calculate_amount(items, shipping_method):
     """Calculate the total amount in cents for Stripe"""
