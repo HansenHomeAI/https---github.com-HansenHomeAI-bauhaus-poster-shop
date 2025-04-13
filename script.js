@@ -38,7 +38,7 @@ const products = [
 ]
 
 // Cart functionality
-let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+let cart = [];
 const cartItems = document.getElementById("cart-items")
 const cartTotal = document.getElementById("cart-total")
 const cartCount = document.querySelector(".cart-count")
@@ -251,9 +251,6 @@ function updateCart() {
     cartCount.style.display = 'none'
   }
 
-  // Save cart to localStorage
-  localStorage.setItem('cart', JSON.stringify(cart));
-
   // No longer adding email input to cart sidebar
 }
 
@@ -406,31 +403,14 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         return;
     }
 
-    // Save cart items to localStorage for processing
-    localStorage.setItem('cartItems', JSON.stringify(cart));
+    // Save cart items to sessionStorage for processing
+    sessionStorage.setItem('cartItems', JSON.stringify(cart));
     
     // Close cart sidebar
     closeCart();
     
     // Load shipping details section instead of proceeding directly to checkout
     showSection('shipping-details-section');
-
-    // Pre-fill email if it was previously entered
-    const savedEmail = localStorage.getItem('customerEmail');
-    if (savedEmail) {
-        document.getElementById('shipping-email').value = savedEmail;
-    }
-
-    // Pre-fill shipping details if they exist in localStorage
-    const savedShipping = JSON.parse(localStorage.getItem('shippingDetails') || '{}');
-    if (savedShipping) {
-        for (const [key, value] of Object.entries(savedShipping)) {
-            const input = document.getElementById(`shipping-${key}`);
-            if (input) {
-                input.value = value;
-            }
-        }
-    }
 
     // Display order summary
     displayOrderSummary('shipping-order-summary');
@@ -462,12 +442,12 @@ document.getElementById('shipping-form').addEventListener('submit', async (e) =>
         shippingData[key] = value;
     }
     
-    // Save email and shipping details to localStorage
-    localStorage.setItem('customerEmail', shippingData.email);
+    // Save email and shipping details to sessionStorage
+    sessionStorage.setItem('customerEmail', shippingData.email);
     
     // Save shipping data without the email (already saved separately)
     const { email, ...shippingDetails } = shippingData;
-    localStorage.setItem('shippingDetails', JSON.stringify(shippingDetails));
+    sessionStorage.setItem('shippingDetails', JSON.stringify(shippingDetails));
     
     // Proceed to payment
     showSection('checkout-section');
@@ -505,9 +485,9 @@ document.getElementById('shipping-form').addEventListener('submit', async (e) =>
             },
             body: JSON.stringify({
                 items: cart,
-                customerEmail: localStorage.getItem('customerEmail'),
+                customerEmail: sessionStorage.getItem('customerEmail'),
                 clientId: clientId,
-                shippingDetails: JSON.parse(localStorage.getItem('shippingDetails') || '{}')
+                shippingDetails: JSON.parse(sessionStorage.getItem('shippingDetails') || '{}')
             })
         });
 
@@ -603,7 +583,7 @@ document.getElementById('shipping-form').addEventListener('submit', async (e) =>
             </div>
             <div class="order-email">
                 <span>Order confirmation will be sent to:</span>
-                <span class="customer-email">${localStorage.getItem('customerEmail')}</span>
+                <span class="customer-email">${sessionStorage.getItem('customerEmail')}</span>
             </div>
         </div>`;
         
@@ -747,7 +727,7 @@ document.getElementById('shipping-form').addEventListener('submit', async (e) =>
                     return_url: window.location.href,
                     payment_method_data: {
                         billing_details: {
-                            email: localStorage.getItem('customerEmail')
+                            email: sessionStorage.getItem('customerEmail')
                         }
                     }
                 },
@@ -767,7 +747,7 @@ document.getElementById('shipping-form').addEventListener('submit', async (e) =>
                 console.log('Payment processed for job:', currentCheckoutJob);
                 
                 // Clear checkout data but keep client ID
-                localStorage.removeItem('cartItems');
+                sessionStorage.removeItem('cartItems');
                 sessionStorage.removeItem('currentCheckout');
                 
                 // Clear cart and update UI
