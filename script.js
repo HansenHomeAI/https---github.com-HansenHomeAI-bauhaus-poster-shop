@@ -746,8 +746,17 @@ document.getElementById('shipping-form').addEventListener('submit', async (e) =>
                 // Payment processed by Stripe, now waiting for webhook confirmation
                 console.log('Payment processed for job:', currentCheckoutJob);
                 
+                // Store current order ID before clearing checkout data
+                const orderId = currentCheckoutJob ? currentCheckoutJob.orderId : null;
+                
                 // Clear checkout data but keep client ID
                 sessionStorage.removeItem('cartItems');
+                
+                // Keep orderId accessible for payment status polling
+                if (orderId) {
+                    sessionStorage.setItem('lastOrderId', orderId);
+                }
+                
                 sessionStorage.removeItem('currentCheckout');
                 
                 // Clear cart and update UI
@@ -919,8 +928,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function startPaymentStatusPolling() {
     // Get the client ID and current order from localStorage
     const clientId = getClientId();
+    // Try to get the last order ID from sessionStorage
+    const lastOrderId = sessionStorage.getItem('lastOrderId');
+    // Only if that fails, try to get from the checkout object
     const currentOrderInfo = JSON.parse(sessionStorage.getItem('currentCheckout') || '{}');
-    const orderId = currentOrderInfo.orderId;
+    const orderId = lastOrderId || currentOrderInfo.orderId;
     
     if (!clientId) {
         console.error('Cannot poll for status: No client ID available');
