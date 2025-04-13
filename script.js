@@ -251,6 +251,9 @@ function updateCart() {
     cartCount.style.display = 'none'
   }
 
+  // Save cart to localStorage
+  localStorage.setItem('cart', JSON.stringify(cart));
+
   // No longer adding email input to cart sidebar
 }
 
