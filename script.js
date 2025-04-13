@@ -561,7 +561,7 @@ document.getElementById('shipping-form').addEventListener('submit', async (e) =>
         orderSummarySection.classList.add('order-summary-section');
         
         let summaryHTML = '<h2>Order Summary</h2><div class="order-items">';
-        let total = 0;
+        let subtotal = 0;
         
         currentCartItems.forEach(item => {
             summaryHTML += `
@@ -573,8 +573,51 @@ document.getElementById('shipping-form').addEventListener('submit', async (e) =>
                     <span class="order-item-price">$${(item.price * item.quantity).toFixed(2)}</span>
                 </div>
             `;
-            total += item.price * item.quantity;
+            subtotal += item.price * item.quantity;
         });
+        
+        // Get shipping details from sessionStorage
+        const shippingDetails = JSON.parse(sessionStorage.getItem('shippingDetails') || '{}');
+        const shippingMethod = shippingDetails.shippingMethod || 'BUDGET';
+        
+        // Calculate shipping cost based on selected shipping method
+        let shippingCost = 0;
+        let shippingLabel = 'Budget Shipping (Free)';
+        
+        switch (shippingMethod) {
+            case 'STANDARD':
+                shippingCost = 5.80;
+                shippingLabel = 'Standard Shipping';
+                break;
+            case 'EXPRESS':
+                shippingCost = 15.30;
+                shippingLabel = 'Express Shipping';
+                break;
+            case 'PRIORITY':
+                shippingCost = 27.30;
+                shippingLabel = 'Priority Shipping';
+                break;
+            default: // BUDGET is free
+                shippingCost = 0;
+                shippingLabel = 'Budget Shipping (Free)';
+        }
+        
+        // Calculate total with shipping
+        const total = subtotal + shippingCost;
+        
+        // Add shipping cost row
+        if (shippingCost > 0) {
+            summaryHTML += `
+                <div class="order-subtotal">
+                    <span>Subtotal</span>
+                    <span>$${subtotal.toFixed(2)}</span>
+                </div>
+                <div class="order-shipping">
+                    <span>${shippingLabel}</span>
+                    <span>$${shippingCost.toFixed(2)}</span>
+                </div>
+            `;
+        }
         
         summaryHTML += `
             <div class="order-total">
