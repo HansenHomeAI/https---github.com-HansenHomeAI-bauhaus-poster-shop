@@ -424,7 +424,7 @@ function showMainContent() {
     window.scrollTo(0, 0);
 }
 
-function showSection(sectionId) {
+function showSection(sectionId, show = true) {
     hideAllSections();
     const section = document.getElementById(sectionId);
     if (section) {
@@ -464,7 +464,64 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     // Close cart sidebar
     closeCart();
     
-    // Show checkout section
+    // Load shipping details section instead of proceeding directly to checkout
+    showSection('shipping-details-section');
+
+    // Pre-fill email if it was previously entered
+    const savedEmail = localStorage.getItem('customerEmail');
+    if (savedEmail) {
+        document.getElementById('shipping-email').value = savedEmail;
+    }
+
+    // Pre-fill shipping details if they exist in localStorage
+    const savedShipping = JSON.parse(localStorage.getItem('shippingDetails') || '{}');
+    if (savedShipping) {
+        for (const [key, value] of Object.entries(savedShipping)) {
+            const input = document.getElementById(`shipping-${key}`);
+            if (input) {
+                input.value = value;
+            }
+        }
+    }
+
+    // Display order summary
+    displayOrderSummary('shipping-order-summary');
+});
+
+// Back button from shipping page to cart
+document.getElementById('shipping-back-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    showSection('shipping-details-section', false);
+    openCart();
+});
+
+// Back button from checkout to shipping
+document.getElementById('checkout-back-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    showSection('shipping-details-section');
+});
+
+// Handle shipping form submission
+document.getElementById('shipping-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Get all form data
+    const formData = new FormData(e.target);
+    const shippingData = {};
+    
+    // Convert FormData to an object
+    for (const [key, value] of formData.entries()) {
+        shippingData[key] = value;
+    }
+    
+    // Save email and shipping details to localStorage
+    localStorage.setItem('customerEmail', shippingData.email);
+    
+    // Save shipping data without the email (already saved separately)
+    const { email, ...shippingDetails } = shippingData;
+    localStorage.setItem('shippingDetails', JSON.stringify(shippingDetails));
+    
+    // Proceed to payment
     showSection('checkout-section');
     
     // Create and show the loading animation
@@ -492,6 +549,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
         // Reset any previous checkout job
         currentCheckoutJob = null;
 
+        // Now include shipping details in the checkout request
         const response = await fetch(`${API_URL}/checkout`, {
             method: 'POST',
             headers: {
@@ -500,7 +558,8 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
             body: JSON.stringify({
                 items: cart,
                 customerEmail: localStorage.getItem('customerEmail'),
-                clientId: clientId
+                clientId: clientId,
+                shippingDetails: JSON.parse(localStorage.getItem('shippingDetails') || '{}')
             })
         });
 
@@ -1112,5 +1171,105 @@ function startPaymentStatusPolling() {
     
     // Start first poll immediately
     poll();
+}
+
+// Display order summary on the shipping page
+function displayOrderSummary(containerId) {
+    const summaryContainer = document.getElementById(containerId);
+    if (!summaryContainer) return;
+    
+    let summaryHTML = '<h2>Order Summary</h2><div class="order-items">';
+    let subtotal = 0;
+    
+    // Display each item in the cart
+    cart.forEach(item => {
+        summaryHTML += `
+            <div class="order-item">
+                <div class="order-item-details">
+                    <span class="order-item-name">${item.name}</span>
+                    <span class="order-item-quantity">× ${item.quantity}</span>
+                </div>
+                <span class="order-item-price">$${(item.price * item.quantity).toFixed(2)}</span>
+            </div>
+        `;
+        subtotal += item.price * item.quantity;
+    });
+    
+    // Add subtotal row
+    summaryHTML += `
+        <div class="order-subtotal">
+            <span>Subtotal</span>
+            <span>$${subtotal.toFixed(2)}</span>
+        </div>
+    `;
+    
+    summaryHTML += `</div>`; // Close order-items div
+    
+    summaryContainer.innerHTML = summaryHTML;
+    
+    // Set up shipping method change listeners
+    const shippingOptions = document.querySelectorAll('input[name="shippingMethod"]');
+    shippingOptions.forEach(option => {
+        option.addEventListener('change', updateOrderTotal);
+    });
+    
+    // Initialize order total
+    updateOrderTotal();
+}
+
+// Update order total when shipping method changes
+function updateOrderTotal() {
+    const summaryContainer = document.getElementById('shipping-order-summary');
+    if (!summaryContainer) return;
+    
+    // Calculate subtotal
+    let subtotal = 0;
+    cart.forEach(item => {
+        subtotal += item.price * item.quantity;
+    });
+    
+    // Get selected shipping method
+    const selectedShipping = document.querySelector('input[name="shippingMethod"]:checked');
+    let shippingCost = 0;
+    
+    if (selectedShipping) {
+        switch (selectedShipping.value) {
+            case 'STANDARD':
+                shippingCost = 5.80;
+                break;
+            case 'EXPRESS':
+                shippingCost = 15.30;
+                break;
+            case 'PRIORITY':
+                shippingCost = 27.30;
+                break;
+            default: // BUDGET is free
+                shippingCost = 0;
+        }
+    }
+    
+    // Calculate total
+    const total = subtotal + shippingCost;
+    
+    // Remove existing total row if present
+    const existingTotal = summaryContainer.querySelector('.order-total');
+    if (existingTotal) {
+        existingTotal.remove();
+    }
+    
+    // Add shipping and total rows
+    const totalHTML = `
+        <div class="order-shipping">
+            <span>Shipping</span>
+            <span>${shippingCost > 0 ? '$' + shippingCost.toFixed(2) : 'Free'}</span>
+        </div>
+        <div class="order-total">
+            <strong>Total</strong>
+            <strong>$${total.toFixed(2)}</strong>
+        </div>
+    `;
+    
+    // Append to the order summary
+    summaryContainer.insertAdjacentHTML('beforeend', totalHTML);
 }
 

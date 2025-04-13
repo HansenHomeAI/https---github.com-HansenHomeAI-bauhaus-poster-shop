@@ -89,6 +89,17 @@ def handler(event, context):
     
     logger.info(f"Processing order {order_id} with {len(items)} items for {customer_email}")
     
+    # Get customer shipping details
+    shipping_details = order_data.get("shipping_details", {})
+    if not shipping_details:
+        logger.error(f"No shipping details found for order {order_id}")
+        return {
+            "statusCode": 400,
+            "body": json.dumps({"error": "Missing shipping details"})
+        }
+        
+    logger.info(f"Shipping details: {json.dumps(shipping_details, default=str)}")
+    
     # Get Prodigi Sandbox API key - ONLY use sandbox for testing
     prodigi_api_key = os.environ.get("PRODIGI_SANDBOX_API_KEY")
     logger.info(f"Available Prodigi env vars: {[k for k in os.environ.keys() if 'PRODIGI' in k]}")
@@ -107,37 +118,67 @@ def handler(event, context):
     # Build the Prodigi order payload
     prodigi_items = []
     for item in items:
+        # Map to valid Prodigi SKUs
+        sku = "GLOBAL-POSTER-16x12"  # Default SKU for posters
+        
+        # Extract image file from item
+        image_url = item.get("image", "")
+        if not image_url:
+            logger.error(f"No image URL found for item: {json.dumps(item, default=str)}")
+            continue
+            
+        # Transform relative path to absolute URL if needed
+        if image_url.startswith("assets/"):
+            image_url = f"https://hansenhomeai.github.io/{image_url}"
+            
         prodigi_items.append({
-            "sku": "GLOBAL-POSTER-40x30",  # This should match a valid Prodigi SKU
-            "quantity": item.get("quantity", 1),
-            "sizing": "cover",
+            "sku": sku,
+            "copies": item.get("quantity", 1),
+            "sizing": "fillPrintArea",  # Valid values: fillPrintArea, fitPrintArea
+            "assets": [
+                {
+                    "printArea": "default",
+                    "url": image_url
+                }
+            ],
             "attributes": {
                 "color": "white"
             }
         })
     
-    # Use the customer's email to create a simple name
-    customer_name = customer_email.split('@')[0]
-    if not customer_name or len(customer_name) < 2:
-        customer_name = "Customer"  # Fallback if email parsing fails
+    # Get customer name from shipping details
+    first_name = shipping_details.get("firstName", "").strip()
+    last_name = shipping_details.get("lastName", "").strip()
+    customer_name = f"{first_name} {last_name}".strip()
     
-    # Clean up name to ensure it's valid
-    customer_name = ''.join(c for c in customer_name if c.isalnum() or c in ' .-_').strip()
     if not customer_name:
-        customer_name = "Customer"
+        # Fallback to email if no name provided
+        customer_name = customer_email.split('@')[0]
+        if not customer_name or len(customer_name) < 2:
+            customer_name = "Customer"
+    
+    # Map shipping method to valid Prodigi values
+    shipping_method = shipping_details.get("shippingMethod", "BUDGET")
+    prodigi_shipping_method = {
+        "BUDGET": "BUDGET",
+        "STANDARD": "STANDARD",
+        "EXPRESS": "EXPRESS",
+        "PRIORITY": "PRIORITY"
+    }.get(shipping_method, "BUDGET")
     
     prodigi_payload = {
-        "shippingMethod": "GLOBAL_ECONOMY",
+        "shippingMethod": prodigi_shipping_method,
         "recipient": {
             "name": customer_name,
             "email": customer_email,
+            "phoneNumber": shipping_details.get("phone", ""),
             "address": {
-                "line1": "123 Placeholder St",
-                "line2": "",
-                "postalOrZipCode": "00000",
-                "countryCode": "US",
-                "townOrCity": "Any City",
-                "stateOrCounty": "CA"
+                "line1": shipping_details.get("address1", ""),
+                "line2": shipping_details.get("address2", "Apt 1"),  # Prodigi requires line2
+                "postalOrZipCode": shipping_details.get("postalCode", ""),
+                "countryCode": shipping_details.get("country", "US"),
+                "townOrCity": shipping_details.get("city", ""),
+                "stateOrCounty": shipping_details.get("state", "")
             }
         },
         "items": prodigi_items,

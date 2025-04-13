@@ -5,6 +5,7 @@ import uuid
 import logging
 import boto3
 import time
+from decimal import Decimal
 
 # Set up logging
 logger = logging.getLogger()
@@ -27,6 +28,11 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize DynamoDB table: {str(e)}")
     # We'll still continue and handle this later if needed
+
+def decimal_default(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError("Object of type '%s' is not JSON serializable" % type(obj).__name__)
 
 def create_cors_response(status_code, body):
     return {
@@ -67,116 +73,112 @@ def handler(event, context):
         body = json.loads(event.get("body", "{}"))
         items = body.get("items", [])
         customer_email = body.get("customerEmail")
+        client_id = body.get("clientId")
+        shipping_details = body.get("shippingDetails", {})
         
-        # Extract client_id if provided or generate a new one
-        client_id = body.get("clientId", str(uuid.uuid4()))
+        # Validate the input
+        if not items:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'No items provided'})
+            }
         
-        # Generate a unique job ID for this checkout request
+        # Calculate amount in cents (Stripe requires amount in cents)
+        amount = calculate_amount(items, shipping_details.get('shippingMethod', 'BUDGET'))
+        
+        # Generate a unique order ID
+        order_id = str(uuid.uuid4())
+        
+        # Generate a unique job ID to track this checkout session
         job_id = str(uuid.uuid4())
         
-        # Create a unique order ID
-        order_id = str(uuid.uuid4())
-
-        if not items:
-            raise ValueError("No items provided in the request")
-
-        # Calculate total amount
-        total_amount = sum(int(float(item.get("price")) * 100) * item.get("quantity", 1) for item in items)
+        # Log checkout attempt
+        logger.info(f"Creating checkout for email: {customer_email}, amount: {amount}, items: {json.dumps(items)}")
         
-        logger.info(f"Creating checkout session for client_id: {client_id}, job_id: {job_id}, order_id: {order_id}")
+        # Create a temporary order record in DynamoDB
+        timestamp = int(time.time())
         
-        # Store the pending order in DynamoDB
-        current_time = int(time.time())
-        try:
-            orders_table.put_item(
-                Item={
-                    'order_id': order_id,
-                    'client_id': client_id,
-                    'job_id': job_id,
-                    'status': 'PENDING',
-                    'items': json.dumps(items),  # Convert to string for DynamoDB
-                    'customer_email': customer_email,
-                    'amount': total_amount,
-                    'created_at': current_time,
-                    'updated_at': current_time,
-                    'expires_at': current_time + 900  # 15 minutes expiration
-                }
-            )
-            logger.info(f"Stored pending order in DynamoDB: {order_id}")
-            
-            # Verify order was stored correctly
-            try:
-                verify_response = orders_table.get_item(Key={'order_id': order_id})
-                if 'Item' in verify_response:
-                    logger.info(f"Verified order exists in DynamoDB: {order_id}")
-                else:
-                    logger.warning(f"Could not verify order {order_id} in DynamoDB immediately after creation")
-            except Exception as verify_error:
-                logger.error(f"Error verifying order in DynamoDB: {str(verify_error)}")
-        except Exception as db_error:
-            # Log error but continue - we can still create a PaymentIntent even if DB fails
-            logger.error(f"Failed to store pending order in DynamoDB: {str(db_error)}")
-
-        # Create a PaymentIntent with the order information in metadata
-        logger.info(f"Creating PaymentIntent with amount: {total_amount}, using API version: {stripe.api_version}")
+        # Create order item for DynamoDB
+        order_item = {
+            'order_id': order_id,
+            'job_id': job_id,
+            'client_id': client_id,
+            'status': 'PENDING',
+            'customer_email': customer_email,
+            'amount': amount,
+            'items': json.dumps(items),
+            'created_at': timestamp,
+            'updated_at': timestamp,
+            'expires_at': timestamp + 900  # 15-minute expiration
+        }
+        
+        # Add shipping details if provided
+        if shipping_details:
+            order_item['shipping_details'] = shipping_details
+        
+        # Store the order in DynamoDB
+        orders_table.put_item(Item=order_item)
+        
+        # Create a Stripe payment intent
         payment_intent = stripe.PaymentIntent.create(
-            amount=total_amount,
-            currency="usd",
-            metadata={
-                "order_id": order_id,
-                "client_id": client_id,
-                "job_id": job_id
-            },
+            amount=amount,
+            currency='usd',
             receipt_email=customer_email,
-            automatic_payment_methods={
-                "enabled": True
+            metadata={
+                'order_id': order_id,
+                'job_id': job_id,
+                'client_id': client_id
             },
-            # Add idempotency key to prevent duplicate charges
-            idempotency_key=job_id
+            payment_method_types=['card']
         )
         
-        logger.info(f"Successfully created PaymentIntent: {payment_intent.id} with client_secret starting with {payment_intent.client_secret[:15]}")
+        # Store the payment intent ID in the order
+        orders_table.update_item(
+            Key={'order_id': order_id},
+            UpdateExpression="SET payment_intent_id = :pi",
+            ExpressionAttributeValues={
+                ':pi': payment_intent.id
+            }
+        )
         
-        # Update the order record with the PaymentIntent ID
-        try:
-            orders_table.update_item(
-                Key={'order_id': order_id},
-                UpdateExpression="SET payment_intent_id = :pi_id, updated_at = :time",
-                ExpressionAttributeValues={
-                    ':pi_id': payment_intent.id,
-                    ':time': current_time
-                }
-            )
-            logger.info(f"Updated order record with PaymentIntent ID: {payment_intent.id}")
-        except Exception as db_error:
-            logger.error(f"Failed to update order with PaymentIntent ID: {str(db_error)}")
+        logger.info(f"Created payment intent: {payment_intent.id} for order: {order_id}")
         
+        # Return the client secret to the frontend
         return {
-            "statusCode": 200,
-            "headers": {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Origin,Accept',
-                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH',
-                'Access-Control-Max-Age': '86400',
-                'Content-Type': 'application/json'
-            },
-            "body": json.dumps({
-                "clientSecret": payment_intent.client_secret,
-                "orderId": order_id,
-                "clientId": client_id,
-                "jobId": job_id
+            'statusCode': 200,
+            'body': json.dumps({
+                'clientSecret': payment_intent.client_secret,
+                'orderId': order_id,
+                'jobId': job_id,
+                'clientId': client_id
             })
         }
+        
     except Exception as e:
-        logger.error("Error processing checkout: %s", str(e))
+        logger.error(f"Error creating checkout session: {str(e)}")
         return {
-            "statusCode": 400,
-            "headers": {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Origin,Accept',
-                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH',
-                'Access-Control-Max-Age': '86400',
-                'Content-Type': 'application/json'
-            },
-            "body": json.dumps({"error": str(e)})
-        } 
+            'statusCode': 500,
+            'body': json.dumps({'error': f"Failed to create checkout session: {str(e)}"})
+        }
+
+def calculate_amount(items, shipping_method):
+    """Calculate the total amount in cents for Stripe"""
+    # Calculate subtotal
+    subtotal = 0
+    for item in items:
+        subtotal += float(item.get('price', 0)) * int(item.get('quantity', 1))
+    
+    # Add shipping cost
+    shipping_cost = 0
+    if shipping_method == 'STANDARD':
+        shipping_cost = 5.80
+    elif shipping_method == 'EXPRESS':
+        shipping_cost = 15.30
+    elif shipping_method == 'PRIORITY':
+        shipping_cost = 27.30
+    
+    # Calculate total (convert to cents for Stripe)
+    total = (subtotal + shipping_cost) * 100
+    
+    # Ensure we return an integer (Stripe requires integer amounts)
+    return int(total) 
