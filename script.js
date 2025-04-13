@@ -251,62 +251,7 @@ function updateCart() {
     cartCount.style.display = 'none'
   }
 
-  // Add email input if not already present
-  let emailContainer = document.querySelector('.cart-email-container');
-  if (!emailContainer && cart.length > 0) {
-    emailContainer = document.createElement('div');
-    emailContainer.classList.add('cart-email-container');
-    emailContainer.innerHTML = `
-      <div class="email-input-wrapper">
-        <input type="email" id="cart-email" placeholder=" " required>
-        <label for="cart-email">Email for Shipping Updates</label>
-        <div class="email-validation-message">Please enter a valid email address</div>
-      </div>
-    `;
-    cartItems.insertAdjacentElement('afterend', emailContainer);
-    
-    // Enable/disable checkout button based on email validity
-    const emailInput = emailContainer.querySelector('#cart-email');
-    const validationMessage = emailContainer.querySelector('.email-validation-message');
-    
-    // Initially hide validation message
-    validationMessage.style.opacity = '0';
-    
-    // Add a variable to store the timeout
-    let validationTimeout;
-    
-    emailInput.addEventListener('input', () => {
-      // Clear any existing timeout
-      if (validationTimeout) {
-        clearTimeout(validationTimeout);
-      }
-      
-      const isValid = emailInput.checkValidity();
-      
-      // Always enable/disable the button immediately
-      checkoutBtn.disabled = !isValid;
-      
-      // If valid, hide message immediately and store email
-      if (isValid) {
-        validationMessage.style.opacity = '0';
-        emailContainer.classList.remove('invalid');
-        localStorage.setItem('customerEmail', emailInput.value);
-      } else {
-        // If invalid, set a timeout to show the message after 1.75 seconds
-        validationTimeout = setTimeout(() => {
-          if (!emailInput.checkValidity()) {
-            validationMessage.style.opacity = '1';
-            emailContainer.classList.add('invalid');
-          }
-        }, 1750); // 1.75 seconds
-      }
-    });
-    
-    // Initially disable checkout button
-    checkoutBtn.disabled = true;
-  } else if (cart.length === 0 && emailContainer) {
-    emailContainer.remove();
-  }
+  // No longer adding email input to cart sidebar
 }
 
 // Decrease quantity
@@ -1135,42 +1080,19 @@ function startPaymentStatusPolling() {
         const processingContainer = document.querySelector('.message-container');
         if (processingContainer) {
             processingContainer.innerHTML = `
-                <h2>Payment Successful</h2>
-                <p>Your payment has been processed successfully.</p>
-                <p>A confirmation email will be sent to you shortly.</p>
-                <button class="btn primary-btn" onclick="showSection('success-section')">View Order Confirmation</button>
-                <button class="btn secondary-btn" style="margin-top: 10px;" onclick="showMainContent()">Return to Shop</button>
+                <div class="timeout-message">
+                    <p>Payment processing timed out. Please try again later.</p>
+                    <button class="btn primary-btn processing-return-btn">Return to Shop</button>
+                </div>
             `;
+            
+            // Add event listener to return button
+            const returnButton = processingContainer.querySelector('.processing-return-btn');
+            if (returnButton) {
+                returnButton.addEventListener('click', () => showMainContent());
+            }
         }
     }
-    
-    // Start polling
-    const poll = async () => {
-        const shouldStop = await checkPaymentStatus();
-        
-        if (!shouldStop && document.getElementById('processing-section') && !document.getElementById('processing-section').classList.contains('hidden')) {
-            // Only continue polling if still on processing page and not done
-            setTimeout(poll, pollingInterval);
-        } else {
-            // Clear timer if we've navigated away or finished polling
-            clearInterval(timerInterval);
-        }
-    };
-    
-    // Fallback success transition after 5 seconds even if no webhook confirmation
-    setTimeout(() => {
-        // If we're still on the processing page after 5 seconds, assume success
-        if (document.getElementById('processing-section') && !document.getElementById('processing-section').classList.contains('hidden')) {
-            // Clear existing timer
-            clearInterval(timerInterval);
-            
-            // Show success section
-            showSection('success-section');
-        }
-    }, 5000); // 5 seconds timeout
-    
-    // Start first poll immediately
-    poll();
 }
 
 // Display order summary on the shipping page
@@ -1231,36 +1153,41 @@ function updateOrderTotal() {
     // Get selected shipping method
     const selectedShipping = document.querySelector('input[name="shippingMethod"]:checked');
     let shippingCost = 0;
+    let shippingLabel = 'Free Shipping';
     
     if (selectedShipping) {
         switch (selectedShipping.value) {
             case 'STANDARD':
                 shippingCost = 5.80;
+                shippingLabel = 'Standard Shipping';
                 break;
             case 'EXPRESS':
                 shippingCost = 15.30;
+                shippingLabel = 'Express Shipping';
                 break;
             case 'PRIORITY':
                 shippingCost = 27.30;
+                shippingLabel = 'Priority Shipping';
                 break;
             default: // BUDGET is free
                 shippingCost = 0;
+                shippingLabel = 'Budget Shipping (Free)';
         }
     }
     
     // Calculate total
     const total = subtotal + shippingCost;
     
-    // Remove existing total row if present
+    // Remove existing shipping and total rows if present
+    const existingShipping = summaryContainer.querySelector('.order-shipping');
     const existingTotal = summaryContainer.querySelector('.order-total');
-    if (existingTotal) {
-        existingTotal.remove();
-    }
+    if (existingShipping) existingShipping.remove();
+    if (existingTotal) existingTotal.remove();
     
     // Add shipping and total rows
     const totalHTML = `
         <div class="order-shipping">
-            <span>Shipping</span>
+            <span>${shippingLabel}</span>
             <span>${shippingCost > 0 ? '$' + shippingCost.toFixed(2) : 'Free'}</span>
         </div>
         <div class="order-total">
@@ -1272,4 +1199,3 @@ function updateOrderTotal() {
     // Append to the order summary
     summaryContainer.insertAdjacentHTML('beforeend', totalHTML);
 }
-
