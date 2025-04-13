@@ -108,9 +108,9 @@ def handler(event, context):
     prodigi_items = []
     for item in items:
         prodigi_items.append({
-            "sku": "GLOBAL-EPOD-12X18-UNFRAMED",  # Using a valid Prodigi SKU for posters
-            "copies": item.get("quantity", 1),
-            "sizing": "fillPrintArea",  # Valid sizing value
+            "sku": "GLOBAL-POSTER-40x30",  # This should match a valid Prodigi SKU
+            "quantity": item.get("quantity", 1),
+            "sizing": "cover",
             "attributes": {
                 "color": "white"
             }
@@ -126,25 +126,19 @@ def handler(event, context):
     if not customer_name:
         customer_name = "Customer"
     
-    # For now, use a placeholder address until we get real shipping info
-    shipping_address = order_data.get("shipping_address", {
-        "line1": "123 Placeholder St",
-        "line2": "Apt 1",  # Required field, can't be empty
-        "postalOrZipCode": "00000",
-        "countryCode": "US",
-        "townOrCity": "Any City", 
-        "stateOrCounty": "CA"
-    })
-    
-    # Use a valid shipping method from Prodigi's supported options
-    shipping_method = order_data.get("shipping_method", "BUDGET")
-    
     prodigi_payload = {
-        "shippingMethod": shipping_method,
+        "shippingMethod": "GLOBAL_ECONOMY",
         "recipient": {
             "name": customer_name,
             "email": customer_email,
-            "address": shipping_address
+            "address": {
+                "line1": "123 Placeholder St",
+                "line2": "",
+                "postalOrZipCode": "00000",
+                "countryCode": "US",
+                "townOrCity": "Any City",
+                "stateOrCounty": "CA"
+            }
         },
         "items": prodigi_items,
         "idempotencyKey": order_id
