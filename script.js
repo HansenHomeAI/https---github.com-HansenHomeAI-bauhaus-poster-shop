@@ -992,56 +992,7 @@ function startPaymentStatusPolling() {
     let pollCount = 0;
     let corsErrorCount = 0; // Track CORS errors
     
-    // Show a timer on the page
-    const processingNote = document.querySelector('.processing-note');
-    if (processingNote) {
-        processingNote.innerHTML += `<br><span class="polling-timer">Checking payment status... (0:00)</span>`;
-    }
-    
-    // Add a "Return to Shop" button immediately for convenience
-    const processingContainer = document.querySelector('.message-container');
-    if (processingContainer && !processingContainer.querySelector('.processing-return-btn')) {
-        const returnButton = document.createElement('button');
-        returnButton.className = 'btn primary-btn processing-return-btn';
-        returnButton.textContent = 'Return to Shop';
-        returnButton.style.marginTop = '20px';
-        returnButton.addEventListener('click', () => showMainContent());
-        processingContainer.appendChild(returnButton);
-    }
-    
-    // Start timer display
-    let secondsElapsed = 0;
-    const timerInterval = setInterval(() => {
-        secondsElapsed++;
-        const minutes = Math.floor(secondsElapsed / 60);
-        const seconds = secondsElapsed % 60;
-        const timerDisplay = document.querySelector('.polling-timer');
-        if (timerDisplay) {
-            timerDisplay.textContent = `Checking payment status... (${minutes}:${seconds < 10 ? '0' : ''}${seconds})`;
-        }
-    }, 1000);
-    
-    // Start the actual polling process
-    console.log(`[DEBUG] Setting up poll interval of ${pollingInterval}ms for max ${maxPolls} polls`);
-    const pollInterval = setInterval(async () => {
-        console.log(`[DEBUG] Running payment status check ${pollCount + 1} of ${maxPolls}`);
-        const shouldStopPolling = await checkPaymentStatus();
-        if (shouldStopPolling) {
-            console.log('[DEBUG] Stopping payment status polling');
-            clearInterval(pollInterval);
-        }
-    }, pollingInterval);
-    
-    // Do an initial check immediately
-    console.log('[DEBUG] Running initial payment status check');
-    checkPaymentStatus().then(shouldStop => {
-        if (shouldStop) {
-            console.log('[DEBUG] Stopping payment status polling after initial check');
-            clearInterval(pollInterval);
-        }
-    });
-    
-    // Function to check payment status
+    // Function to check payment status - MOVED TO TOP
     const checkPaymentStatus = async () => {
         try {
             // Increment poll count
@@ -1155,6 +1106,55 @@ function startPaymentStatusPolling() {
             }
         }
     }
+    
+    // Show a timer on the page
+    const processingNote = document.querySelector('.processing-note');
+    if (processingNote) {
+        processingNote.innerHTML += `<br><span class="polling-timer">Checking payment status... (0:00)</span>`;
+    }
+    
+    // Add a "Return to Shop" button immediately for convenience
+    const processingContainer = document.querySelector('.message-container');
+    if (processingContainer && !processingContainer.querySelector('.processing-return-btn')) {
+        const returnButton = document.createElement('button');
+        returnButton.className = 'btn primary-btn processing-return-btn';
+        returnButton.textContent = 'Return to Shop';
+        returnButton.style.marginTop = '20px';
+        returnButton.addEventListener('click', () => showMainContent());
+        processingContainer.appendChild(returnButton);
+    }
+    
+    // Start timer display
+    let secondsElapsed = 0;
+    const timerInterval = setInterval(() => {
+        secondsElapsed++;
+        const minutes = Math.floor(secondsElapsed / 60);
+        const seconds = secondsElapsed % 60;
+        const timerDisplay = document.querySelector('.polling-timer');
+        if (timerDisplay) {
+            timerDisplay.textContent = `Checking payment status... (${minutes}:${seconds < 10 ? '0' : ''}${seconds})`;
+        }
+    }, 1000);
+    
+    // Start the actual polling process
+    console.log(`[DEBUG] Setting up poll interval of ${pollingInterval}ms for max ${maxPolls} polls`);
+    const pollInterval = setInterval(async () => {
+        console.log(`[DEBUG] Running payment status check ${pollCount + 1} of ${maxPolls}`);
+        const shouldStopPolling = await checkPaymentStatus();
+        if (shouldStopPolling) {
+            console.log('[DEBUG] Stopping payment status polling');
+            clearInterval(pollInterval);
+        }
+    }, pollingInterval);
+    
+    // Do an initial check immediately
+    console.log('[DEBUG] Running initial payment status check');
+    checkPaymentStatus().then(shouldStop => {
+        if (shouldStop) {
+            console.log('[DEBUG] Stopping payment status polling after initial check');
+            clearInterval(pollInterval);
+        }
+    });
 }
 
 // Display order summary on the shipping page
