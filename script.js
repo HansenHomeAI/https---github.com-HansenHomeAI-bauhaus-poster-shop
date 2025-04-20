@@ -969,6 +969,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Poll for payment status updates when on the processing page
 function startPaymentStatusPolling() {
+    console.log('[DEBUG] Payment status polling initiated');
+    
     // Get the client ID and current order from localStorage
     const clientId = getClientId();
     // Try to get the last order ID from sessionStorage
@@ -1019,6 +1021,26 @@ function startPaymentStatusPolling() {
         }
     }, 1000);
     
+    // Start the actual polling process
+    console.log(`[DEBUG] Setting up poll interval of ${pollingInterval}ms for max ${maxPolls} polls`);
+    const pollInterval = setInterval(async () => {
+        console.log(`[DEBUG] Running payment status check ${pollCount + 1} of ${maxPolls}`);
+        const shouldStopPolling = await checkPaymentStatus();
+        if (shouldStopPolling) {
+            console.log('[DEBUG] Stopping payment status polling');
+            clearInterval(pollInterval);
+        }
+    }, pollingInterval);
+    
+    // Do an initial check immediately
+    console.log('[DEBUG] Running initial payment status check');
+    checkPaymentStatus().then(shouldStop => {
+        if (shouldStop) {
+            console.log('[DEBUG] Stopping payment status polling after initial check');
+            clearInterval(pollInterval);
+        }
+    });
+    
     // Function to check payment status
     const checkPaymentStatus = async () => {
         try {
@@ -1030,6 +1052,8 @@ function startPaymentStatusPolling() {
             if (orderId) {
                 queryParams += `&orderId=${encodeURIComponent(orderId)}`;
             }
+            
+            console.log(`[DEBUG] Calling payment status API: ${API_URL}/payment-status?${queryParams}`);
             
             // Call payment status endpoint with additional headers to help with CORS
             const response = await fetch(`${API_URL}/payment-status?${queryParams}`, {

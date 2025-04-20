@@ -238,7 +238,7 @@ def handler(event, context):
                 ":payment_status": "paid",
                 ":order_status": "PAYMENT_COMPLETE", 
                 ":time": current_time,
-                ":amount": str(amount_total)
+                ":amount": Decimal(str(amount_total))
             }
             
             expression_attr_names = {
@@ -255,6 +255,7 @@ def handler(event, context):
             )
             
             logger.info(f"Updated order status to PAYMENT_COMPLETE: {order_id}")
+            logger.info(f"Order update response: {json.dumps(update_response, cls=DecimalEncoder)}")
             
             # Send email notification
             send_notification_email(current_order, payment_intent)

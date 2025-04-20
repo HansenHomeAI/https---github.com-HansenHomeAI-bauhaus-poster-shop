@@ -19,6 +19,7 @@ def handler(event, context):
     This allows the frontend to poll for confirmation from Stripe webhooks
     """
     logger.info(f"Received payment status check: {event}")
+    logger.info(f"Using orders table: {orders_table_name}")
     
     # Handle preflight OPTIONS request for CORS
     if event.get('httpMethod') == 'OPTIONS':
@@ -38,6 +39,7 @@ def handler(event, context):
     # Extract query parameters
     query_params = event.get('queryStringParameters', {})
     if not query_params:
+        logger.error("Missing query parameters in payment status check")
         return {
             'statusCode': 400,
             'headers': {
@@ -51,7 +53,10 @@ def handler(event, context):
     client_id = query_params.get('clientId')
     order_id = query_params.get('orderId')
     
+    logger.info(f"Payment status check for clientId: {client_id}, orderId: {order_id}")
+    
     if not client_id:
+        logger.error("Missing clientId parameter in payment status check")
         return {
             'statusCode': 400,
             'headers': {
@@ -65,10 +70,12 @@ def handler(event, context):
     # If we have an order_id, check that specific order
     if order_id:
         try:
+            logger.info(f"Checking specific order: {order_id}")
             response = table.get_item(Key={'order_id': order_id})
             order = response.get('Item')
             
             if not order:
+                logger.error(f"Order {order_id} not found in table")
                 return {
                     'statusCode': 404,
                     'headers': {
@@ -79,9 +86,12 @@ def handler(event, context):
                     'body': json.dumps({'error': f'Order {order_id} not found'})
                 }
             
+            logger.info(f"Order found with status: {order.get('status', 'unknown')}")
+            
             # Check if payment is complete
             status = order.get('status', '')
             if status == 'PAYMENT_COMPLETE' or status == 'PROCESSING':
+                logger.info(f"Order {order_id} has confirmed payment status: {status}")
                 return {
                     'statusCode': 200,
                     'headers': {
@@ -97,6 +107,7 @@ def handler(event, context):
                     })
                 }
             else:
+                logger.info(f"Order {order_id} payment not yet confirmed, current status: {status}")
                 return {
                     'statusCode': 200,
                     'headers': {
