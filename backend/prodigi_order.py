@@ -15,6 +15,35 @@ dynamodb = boto3.resource('dynamodb')
 orders_table_name = os.environ.get('ORDERS_TABLE', 'OrdersTable')
 table = dynamodb.Table(orders_table_name)
 
+def create_prodigi_order(order_data):
+    """
+    Helper function for creating a Prodigi order from order data
+    This is used by other Lambda functions via import
+    """
+    logger.info(f"Creating Prodigi order via helper function")
+    
+    # Pass the order data to the Lambda handler in the expected format
+    event = {
+        "order_id": order_data.get("order_id"),
+        "order_data": order_data
+    }
+    
+    # Use the main handler
+    result = handler(event, {})
+    
+    # Extract response body
+    if isinstance(result.get("body"), str):
+        response_body = json.loads(result.get("body", "{}"))
+    else:
+        response_body = result.get("body", {})
+        
+    # Return the prodigi order ID
+    return {
+        "prodigi_order_id": response_body.get("prodigi_order_id"),
+        "status": result.get("statusCode"),
+        "message": response_body.get("message")
+    }
+
 def handler(event, context):
     """
     Creates a print order with Prodigi after payment is confirmed
@@ -144,7 +173,8 @@ def handler(event, context):
         if image_url.startswith("assets/"):
             image_url = f"https://hansenhomeai.github.io/{image_url}"
             
-        prodigi_items.append({
+        # Create the product item
+        prodigi_item = {
             "sku": item_sku,
             "copies": item.get("quantity", 1),
             "sizing": "fillPrintArea",  # Valid values: fillPrintArea, fitPrintArea
@@ -153,11 +183,17 @@ def handler(event, context):
                     "printArea": "default",
                     "url": image_url
                 }
-            ],
-            "attributes": {
+            ]
+        }
+        
+        # Only add attributes for products that accept them
+        # Fine Art Prints (FAP) don't support color attributes according to the error message
+        if "FAP" not in item_sku:
+            prodigi_item["attributes"] = {
                 "color": "white"
             }
-        })
+            
+        prodigi_items.append(prodigi_item)
     
     # Get customer name from shipping details
     first_name = shipping_details.get("firstName", "").strip()
